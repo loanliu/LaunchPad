@@ -13,15 +13,8 @@ body
 
 @font-face {
     font-family: NHGrotesk;
-    font-weight: 700;
-    src: url(https://esites.vzbi.com/sites/HQ_GTM/SiteAssets/Fonts/NeueHaasGroteskDisplayBold.eot?#iefix) format("embedded-opentype"), url(https://esites.vzbi.com/sites/HQ_GTM/SiteAssets/Fonts/NeueHaasGroteskDisplayBold.woff2) format("woff2"), url(https://esites.vzbi.com/sites/HQ_GTM/SiteAssets/Fonts/NeueHaasGroteskDisplayBold.woff) format("woff"), url(https://esites.vzbi.com/sites/HQ_GTM/SiteAssets/Fonts/NeueHaasGroteskDisplayBold.ttf) format("truetype")
-}
-
-@font-face {
-    font-family: NHGrotesk;
-    src: url(https://esites.vzbi.com/sites/HQ_GTM/SiteAssets/Fonts/NeueHaasGroteskDisplay.eot?#iefix) format("embedded-opentype"), url(https://esites.vzbi.com/sites/HQ_GTM/SiteAssets/Fonts/NeueHaasGroteskDisplay.woff2) format("woff2"), 
-url(https://esites.vzbi.com/sites/HQ_GTM/SiteAssets/Fonts/NeueHaasGroteskDisplay.woff) format("woff"), 
-url(https://esites.vzbi.com/sites/HQ_GTM/SiteAssets/Fonts/NeueHaasGroteskDisplay.ttf) format("truetype")
+    src: url(https://static.wixstatic.com/ufonts/3bb6a5_42c1de792a7d456db30bd5e5277e55ed/woff2/file.woff2) format("woff2"),
+	url(https://static.wixstatic.com/ufonts/3bb6a5_42c1de792a7d456db30bd5e5277e55ed/woff2/file.woff2) format("truetype")	
 }
 
 .tab__header {
