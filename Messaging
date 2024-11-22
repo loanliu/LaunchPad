@@ -1,0 +1,301 @@
+<!--  247501 - Black Friday Flash Promo Global Nav Ribbon Messaging (5GH/Fios/LTE) --->
+  <style>
+      #gnav20-promo-placeholder {
+          display: none;
+      }
+  
+      #ribbon-countdown-wrapper .gnav20-promo-ribbon-wrapper.u-colorBackgroundRed,
+      #ribbon-countdown-wrapper .gnav20-promo-ribbon-wrapper.u-colorBackgroundRed .gnav20-promo-ribbon a,
+      #ribbon-countdown-wrapper .gnav20-promo-ribbon-wrapper.u-colorBackgroundRed .gnav20-promo-ribbon a:visited,
+      #ribbon-countdown-wrapper .gnav20-promo-ribbon-wrapper.u-colorBackgroundRed .gnav20-promo-ribbon a:hover,
+      #ribbon-countdown-wrapper .gnav20-promo-ribbon-wrapper.u-colorBackgroundRed .gnav20-promo-ribbon a:focus {
+          background-color: #f50a23 !important;
+      }
+  
+      #ribbon-countdown-wrapper .gnav20-promo-ribbon-wrapper.u-colorBackgroundRed a {
+          border-bottom: 1px solid #fff;
+      }
+  
+      #ribbon-countdown-wrapper .gnav20-promo-ribbon-wrapper.u-colorBackgroundRed * {
+          color: #fff !important;
+      }
+  
+      #ribbon-countdown-wrapper .gnav20-promo-ribbon-wrapper.u-colorBackgroundStone,
+      #ribbon-countdown-wrapper .gnav20-promo-ribbon-wrapper.u-colorBackgroundStone .gnav20-promo-ribbon a,
+      #ribbon-countdown-wrapper .gnav20-promo-ribbon-wrapper.u-colorBackgroundStone .gnav20-promo-ribbon a:visited,
+      #ribbon-countdown-wrapper .gnav20-promo-ribbon-wrapper.u-colorBackgroundStone .gnav20-promo-ribbon a:hover,
+      #ribbon-countdown-wrapper .gnav20-promo-ribbon-wrapper.u-colorBackgroundStone .gnav20-promo-ribbon a:focus {
+          background-color: #f3ede0 !important;
+      }
+  
+      .gnav20-modal-overlay {
+          position: absolute;
+          left: 0;
+          right: 0;
+          bottom: 0;
+          top: 0;
+      }
+  </style>
+  
+  <script type="text/javascript">
+  
+      var activityId = '${activity.id encode="escape"}',                            //Get the activity Id from an activity
+          expId = '${campaign.recipe.id encode="escape"}',                        //Get experience Id from an activity
+          traffType = '${campaign.recipe.trafficType encode="escape"}',
+          experienceName247501 = '${activity.experience.name  encode="escape"}',
+          page247501 = document.documentElement;
+          tntId = activityId + ':' + expId + ':' + traffType;
+  
+      // tntId=0;
+      var init247501 = function () {
+  
+          page247501.classList.add('exp-' + tntId);
+          
+          let checkExistRibbon = setInterval(function () {
+              // selector needed
+              if(document.querySelector('#vz-gh20 .gnav20-width-wrapper-border-bottom')) {
+                  clearInterval(checkExistRibbon);
+                  setTimeout(function () {
+                      updateRibbon()}
+                  , 2000);
+              }
+          }, 100);
+  
+          Mutation();
+      }
+  
+      const updateRibbon = () => {
+          const ribbonCountDown = document.createElement('div');
+          ribbonCountDown.setAttribute('id', 'ribbon-countdown-wrapper');
+          document.querySelector('#vz-gh20 .gnav20-width-wrapper-border-bottom').insertAdjacentElement('afterend', ribbonCountDown);
+  
+          let copy;
+  
+          switch (window.location.pathname) {
+              case '/home/internet/fios-fastest-internet':
+              case '/home/internet/fios-fastest-internet/':
+                  copy = 'With Fios 1 Gig and 2 Gig internet plans.'
+                  break;
+              case '/home/internet/5g':
+              case '/home/internet/5g/':
+                  copy = 'With a 5G Home Plus internet plan.'
+                  break;
+              case '/home/internet/lte':
+              case '/home/internet/lte/':
+                  copy = 'With a LTE Home Plus internet plan.'
+                  break;
+              default:
+                  break;
+          }
+  
+          let backgroundColor = '';
+          switch (experienceName247501) {
+              case 'Treatment A':
+                  backgroundColor = 'u-colorBackgroundRed'
+                  break;
+              case 'Treatment C':
+                  backgroundColor = 'u-colorBackgroundStone'
+                  break;
+              default:
+                  break;
+          }
+  
+          const temp = `
+              <div>
+                  <div class="gnav20-ribbontext">
+                      <div class="gnav20-promo-ribbon-wrapper gnav20-clearfix $${false}{backgroundColor}">	
+                          <div class="gnav20-promo">	
+                              <div class="gnav20-promotext opacityOne">
+                                  <div class="gnav20-promo-ribbon" item-title="promoRibbon">
+                                      <div class="gnav20-promo-text gnav20-white-focus">
+                                          <span>
+                                              <span style="font-weight:700">Order Now! </span>
+                                              Get The Xbox Series S, on us. $${false}{copy} 
+                                              <span class="gnav20-promo-icon">
+                                                  <a role="button" href="javascript:void(0);" aria-label="Details about Get The Xbox Series S, on us. With Fios 1 Gig and 2 Gig internet plans" data-track="global nav:promo ribbon:details" id="aTargetB">Details</a>
+                                              </span>
+                                              <span style="font-weight:700" id="countdown_timer"></span>
+                                          </span>
+                                      </div>
+                                  </div>
+                              </div>
+                          </div>
+                      </div>
+                  </div>
+              </div>
+              </div>
+          `;
+  
+          document.querySelector('#ribbon-countdown-wrapper').innerHTML = temp;
+          countdown();
+  
+          const modalContent = `
+              <p class="u-marginBottom--0"><span style="font-weight:700">Xbox Series S: </span>Offer valid thru 12.2.24. Must activate/install and maintain eligible Verizon Home Internet services in good standing for 14 days and redeem w/in 60 days thereafter, or by no later than 3.16.25, whichever is first. Verizon reserves the right to charge back the value of the Microsoft promotional device if eligible service is canceled w/in 180 days. One Xbox Series S Console per order, while supplies last. One offer per eligible Verizon account.</p>
+          `;
+  
+          const modal247501 = new targetModal('detailsModal', modalContent, 'offer details overlay|30-day guarantee', 'close offer details overlay|30-day guarantee');
+  
+          document.getElementById('aTargetB').addEventListener('click', e => {
+              e.preventDefault();
+              modal247501.open()
+          });
+  
+          resizeHeight();
+  
+          resizeToggleDiscount();
+      }
+  
+      const countdown = () => {
+          let countDownDate = new Date('Dec 03 2024 03:00:00 GMT-0500');//Creates date based on UTC-4
+          var x = setInterval(function () {
+              var now = new Date().getTime();
+              var distance = countDownDate - now;
+              var days = Math.floor(distance / (1000 * 60 * 60 * 24));
+              var hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+              var minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
+              var seconds = Math.floor((distance % (1000 * 60)) / 1000);
+              document.getElementById("countdown_timer").innerHTML = `Ends in $${false}{days}d:$${false}{hours}h:$${false}{minutes}m`;
+              // If the count down is over, write some text 
+              if (distance < 0) {
+                  clearInterval(x);
+                  document.getElementById("countdown_timer").innerHTML = "";
+              }
+          }, 1000);
+      }
+  
+      class targetModal {
+          constructor(modalId, modalContent, modalTaggingName, modalCloseButtonTagging) {
+              this.id = modalId;
+              this.TaggingName = modalTaggingName;
+  
+              const modalHTML = `    
+                  <div class="gnav20-modal" id="$${false}{this.id}">
+                      <div class="gnav20-modal-overlay" tabindex="-1" data-modal-hide="" data-track='{"type":"link","name":"click outside modal"}'></div>
+                      <div class="gnav20-modal-content" aria-describedby="gnav20-modal-sub-heading" role="dialog">
+                          <button id="gnav20-close-icon" class="gnav20-promo-close-icon" tabindex="0" aria-label="Click here or press escape key to Close Modal Dialog" data-modal-hide="" data-track='{"type":"link","name":"$${false}{modalCloseButtonTagging}"}'>
+                          </button>
+                          <div class="gnav20-modal-content-wrapper">
+                              <div class="gnav20-modal-sub-heading" id="gnav20-modal-sub-heading">
+                                   $${false}{modalContent}
+                              </div>
+                              <div class="gnav20-modal-cta"></div>
+                          </div>
+                      </div>
+                  </div>
+              `;
+  
+              document.querySelector('#ribbon-countdown-wrapper').insertAdjacentHTML('beforeend', modalHTML);
+              document.querySelector('#' + this.id + ' #gnav20-close-icon').addEventListener('click', () => {
+                  this.close();
+              });
+              document.querySelector('#' + this.id + ' .gnav20-modal-overlay').addEventListener('click', () => {
+                  this.close();
+              });
+              document.body.addEventListener('keyup', (e) => {
+                  if (e.key == "Escape" && document.querySelector('#' + this.id).classList.contains('u-displayBlock')) {
+                      this.close();
+                  }
+              });
+  
+          }
+          open() {
+              document.querySelector('html').style.overflow = 'hidden';
+              document.querySelector('#' + this.id).classList.add('u-displayBlock');
+  
+              //trap focus
+              const focusableElements = 'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])';
+              const modal = document.querySelector('#' + this.id);
+              const firstFocusableElement = modal.querySelectorAll(focusableElements)[0];
+              const focusableContent = modal.querySelectorAll(focusableElements);
+              const lastFocusableElement = focusableContent[focusableContent.length - 1];
+              document.addEventListener('keydown', function (e) {
+                  let isTabPressed = e.key === 'Tab' || e.keyCode === 9;
+  
+                  if (!isTabPressed) {
+                      return;
+                  }
+  
+                  if (e.shiftKey) {
+                      if (document.activeElement === firstFocusableElement) {
+                          lastFocusableElement.focus();
+                          e.preventDefault();
+                      }
+                  } else {
+                      if (document.activeElement === lastFocusableElement) {
+                          firstFocusableElement.focus();
+                          e.preventDefault();
+                      }
+                  }
+              });
+              firstFocusableElement.focus();
+  
+              //Tagging open
+              window.coreData = window.coreData || [];
+              window.coreData.push({
+                  task: "emit",
+                  event: "openView",
+                  params:
+                  {
+                      selector: this.id,
+                      name: this.TaggingName
+                  }
+              });
+  
+          }
+          close() {
+              document.querySelector('html').style.overflow = 'auto';
+              document.querySelector('#' + this.id).classList.remove('u-displayBlock');
+          }
+      }
+  
+      const resizeHeight = () => {
+          const targetNode = document.getElementById("ribbon-countdown-wrapper");
+  
+          new ResizeObserver(function () {
+              if (document.querySelector('.gnav20-sticky-content')) {
+                  document.querySelector('#vz-gh20').style.height = `$${false}{document.querySelector('.gnav20-sticky-content').offsetHeight}px`
+              }
+  
+              if (document.querySelector('#discount-toggle-sticky')) {
+                  document.querySelector('#discount-toggle-sticky').style.top = `${document.querySelector('#vz-gh20').offsetHeight + document.querySelector('.lqWidgetComp').offsetHeight}px`
+              }
+  
+          }).observe(targetNode);
+      };
+  
+      const resizeToggleDiscount = () => {
+          window.onscroll = function (e) {
+              if (document.querySelector('#discount-toggle-sticky') && !document.querySelector('#discount-toggle-sticky').classList.contains('sticky-bottom-hidden')) {
+                  document.querySelector('#discount-toggle-sticky').style.top = `$${false}{document.querySelector('#vz-gh20').offsetHeight + document.querySelector('.lqWidgetComp').offsetHeight}px`;
+              }
+          }
+      }
+  
+  
+      // Mutation check if the element changed
+      const Mutation = () => {
+          var oldHref = document.location.href;
+          var bodyList = document.querySelector('#ribbon-countdown-wrapper');
+  
+          var observer = new MutationObserver(function (mutations) {
+              mutations.forEach(function (mutation) {
+                  let checkExistRibbon = setInterval(function () {
+                      // selector needed
+                      if (document.querySelector('#ribbon-countdown-wrapper')) {
+                          clearInterval(checkExistRibbon);
+                          updateRibbon();
+                      }
+                  }, 100);
+                  observer.disconnect();
+              });
+          });
+          var config = {
+              attributes: true, childList: true, subtree: true
+          };
+          observer.observe(bodyList, config);
+      }
+  
+      !page247501.classList.contains('exp-' + tntId) ? init247501() : '';
+  
+  </script>
+  <!--  247501 - Black Friday Flash Promo Global Nav Ribbon Messaging (5GH/Fios/LTE) --->
