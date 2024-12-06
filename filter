@@ -375,3 +375,422 @@ function displayItemviaSPRest(item, index) {
 	});	
 });
 
+function displayCalendar() {
+    calendar = $('#calendar').fullCalendar({
+        //eventSources: [curSource[0],curSource[1],curSource[2],curSource[3],curSource[4],curSource[5]],
+        eventSources: [curSource[0]],
+        header: {
+            left: (isMobile ? 'title' : ' '),
+            center: (isMobile ? ' ' : 'title'),
+            //right: 'month basicWeek basicDay'
+            right: 'today prev  next'
+        },
+        footer: {
+            //center: footer
+        },
+        
+        theme:false,
+        //themeSystem: "bootstrap3",
+        weekends: true,
+        //hiddenDays: hiddenDays,
+        fixedWeekCount: false,
+        displayEventTime: false,
+        contentHeight: "auto", // do not use auto, it will make calendar too long
+        //contentHeight: contentheight,
+        //height: contentheight,
+        eventOrder: "orderfield,projectname",
+        //set the values and open the modal
+        /*eventClick: function(event) {
+            var modal = $("#modal");
+            modal.find(".modal-title").html(event.title);
+            modal.modal(); 
+        },*/       
+        dayRender: function(date, cell) {
+        var weekDay = date.format("ddd").toUpperCase();
+        var month = date.format("MMMM");
+        var day = date.format("D");
+        cell.html("<div id='week-day' class='fc-day-day'>" + weekDay + "</div>");
+        },
+        eventRender: function (event, element, view) {
+            //element.attr('target', '_blank');
+            $("#html-content-holder").css({"overflow": 'auto', "width": windowWidth});
+            $(element).css("margin-left", "5px");
+            $(element).css("margin-bottom", "1px"); 
+            //$(element).css("background-color", "#fff"); 
+        	element.attr('href', 'javascript:void(0);');
+        	element.find('.fc-title').html(element.find('.fc-title').text());
+        	element.click(function() {
+	            //$("#meetingDate").html(moment(event.start).format('MMM Do'));
+	            //$("#eventInfo").html(event.title);
+	            if (event.url != "")
+	            {
+		            openDetail(event);
+	            }
+        	});
+		    /*
+			if (view.name == 'month')
+			{
+				// none of the codes below works
+				//$(".fc-basic-view .fc-body .fc-row").css({"height": '120px'});
+				//$(".fc-view-month td div").css({"height": '120px'});
+				//contentHeight: "650" - this does not work
+			}*/	
+        	return filter(event); 
+        },
+        navLinks: false,
+	    navLinkDayClick: function(date, jsEvent, view) {
+            $('#calendar').fullCalendar('changeView','basicDay');	    
+            $('#calendar').fullCalendar('gotoDate',date);
+	    },
+	    eventLimit: true, // for all non-agenda views
+	    views: {
+	        month: {
+	            eventLimit: (isiPhone || isiPad) ? 2 : 11, // adjust to 2 only for month
+	            //slotWidth: isiPhone ? "5" : "10"
+	        }
+			,
+	       	week: {
+	            eventLimit: (isiPhone || isiPad) ? 14 : 11, // adjust to 2 only for month
+	            //slotWidth: isiPhone ? "5" : "10"
+	        },
+	       	day: {
+	            eventLimit: (isiPhone || isiPad) ? 14 : 11, // adjust to 2 only for month
+	        }
+	    },
+		defaultView: isiPhone ? "month" : "month"
+		,
+		eventAfterAllRender: function(event, element, view) {
+			if (isiPhone)
+			{
+				$("#html-content-holder").css({"overflow": 'auto', "width": windowWidth});
+				//$('img').css({"height": '8px', "width":'8px'});
+		    	$('.nav-toggle').css({"height": '18px', "width":'16px'});		
+		    	$('.fc-icon, body .fc').css({"font-size": '6px'});	
+		    	$('.fc-icon').css({"height": '5px',"line-height": '5px'});	
+			} 
+			if (isiPad)
+			{
+				$('#topicon').css({"margin-top": '-30px'});
+				$('#suiteBar, #s4-ribbonrow').css({"display": 'none'});
+			}
+        }
+        /*,
+	    viewRender: function(view, element) {
+	        if (view.name === "month") {
+	        	if (isiPhone)
+		            $("#calendar").height(500); //change id and height if needed
+				else if (isiPad)
+		            $("#calendar").height(600);		            
+	        }
+	    }
+        ,
+        eventLimitClick: "day"*/
+    });	
+    
+    $( ".fc-today-button" )[0].innerHTML = "<div class='button-style button-current'><button class='button-radius button-font-current-month' type='button'>Current Month</button></div>";
+    $( ".fc-prev-button" )[0].innerHTML = "<div class='button-style'><button class='button-prev button-font' type='button'>Previous Month</button></div>";
+    $( ".fc-next-button" )[0].innerHTML = "<div class='button-style'><button class='button-next button-font' type='button'>Next Month</button></div>";
+    $( ".fc-today-button" ).removeClass('fc-state-default');
+	$( ".fc-next-button" ).removeClass('fc-state-default');
+	$( ".fc-prev-button" ).removeClass('fc-state-default');
+	$( ".fc-today-button" ).removeClass('fc-button');
+	$( ".fc-next-button" ).removeClass('fc-button');
+	$( ".fc-prev-button" ).removeClass('fc-button');
+
+    //$(".fc-prev-button").insertBefore('.fc-today-button');
+    $("#calendar div .fc-left").appendTo(".fc-center");
+    $(".fc-today-button").appendTo(".fc-clear");
+    $(".fc-next-button").insertAfter(".fc-today-button");
+
+    $('<div class="legendsection"><div style="margin-left: auto; display:flex;"><div display="flex"><span class="legendbold">Bold</span><span style="margin-right: var(--space-4X, 16px);" class="legendregular"> = Priority 1 and Priority 2 items</span></div><div style="display:flex"><span class="dot"></span><span class="legendregular" style="text-indent: 2px"> = Recently updated items</span></div></div></div>').insertBefore(".fc-view-container");
+	//$( '<img src="https://onesite.verizon.com/sites/HQ_GTM/SiteAssets/Images/recentlyupdate.png" class="calbutton recentlyupdate" style="margin-left:85%">' ).insertAfter( ".fc-right:first" );
+    //$('#filtersection').insertAfter("#calendar div .fc-center");
+	//$( '<img src="https://onesite.verizon.com/sites/HQ_GTM/SiteAssets/Images/recentlyupdate.png" class="recentlyupdate" style="margin-right:3%">' ).insertAfter( ".recentupdate" );	
+}   
+function filter(calEvent) {
+	var vals = [];
+	var channelVals = [];
+	var customerVals = [];
+	var launchVals = [];	
+    var pVals = [];
+   	var tVals = [];
+	var result = false;
+
+     // Search filter
+    
+	var input = $("input#filterInput");
+    // console.log("in input filter" + input);
+	if (input.val().toLowerCase() != '' && input.val().toLowerCase() != '              search for promotions, launches, etc.')
+	{
+	    if(calEvent.title != null)
+        {
+			if (containsAnySearch(input.val().toLowerCase(), calEvent.title.toLowerCase()))
+				result=true; 
+			else
+				return false;
+		}
+	}	
+
+	$('input:checkbox.calFilter:checked').each(function() {
+		vals.push($(this).val());
+	});
+
+	$('input:checkbox.channelFilter:checked').each(function() {
+		channelVals.push($(this).val());
+	});
+
+	$('input:checkbox.customerFilter:checked').each(function() {
+		customerVals.push($(this).val());
+	});
+	
+	$('input:checkbox.launchFilter:checked').each(function() {
+		launchVals.push($(this).val());
+	});
+
+    $('input:checkbox.pfilters:checked').each(function(){
+        pVals.push($(this).val());
+    });
+    
+    $('input:checkbox.typeFilter:checked').each(function() {
+		tVals.push($(this).val());
+	});
+	
+
+	//if (vals.indexOf(calEvent.description.toString()) !== -1 || calEvent.description[0] == 'ALL')
+	//		result = true;
+	//v2.0
+	if (vals.length == 0 || (channelVals.length == 0 && !initialState) || (customerVals.length == 0 && !initialState_customer) || launchVals.length == 0 && !initialState_launch)
+	{
+    	if (calEvent.customertype != null)
+		{
+			if (containsAny(['Home','Mobile','Both (equal)'], calEvent.customertype))
+				result=true; 
+			else
+				return false; //result=false;
+		}
+		return result;
+	}
+	if (vals.indexOf("Retail") > -1 || vals.indexOf("Telesales") > -1 || vals.indexOf("Agent") > -1 || vals.indexOf("NR") > -1 || vals.indexOf("HomeChannel") > -1 || vals.indexOf("Digital") > -1 || vals.indexOf("WirelessCare") > -1)
+	{
+		if (calEvent.description != null)
+		{
+			if (containsAny(vals, calEvent.description))
+				result=true; 
+			else
+				return false;// result=false;
+		}
+	}
+
+
+	// check if B2B filter is selected
+	/* replace with channel filters
+	if (vals.indexOf("B2B") == -1) // B2B was not selected
+	{
+		if ( calEvent.isB2B == 'B2B' && calEvent.description.indexOf("Market Activity") < 0)
+		result=false;
+	}
+	if (vals.indexOf("Consumer") == -1) // Consumer was not selected, show B2B only
+	{
+		if ( calEvent.isB2B != 'B2B' && calEvent.description.indexOf("Market Activity") < 0)
+			result=false;
+	}*/
+	// v2.0 - check if Customer type is selected
+	if (vals.indexOf("Home") > -1 || vals.indexOf("Mobile") > -1 || vals.indexOf("Both (equal)") > -1)	
+	{
+		if (calEvent.customertype != null)
+		{
+			if (containsAny(vals, calEvent.customertype))
+				result=true; 
+			else
+				return false; //result=false;
+		}
+	}
+	// v2.0 - check if launch type is selected
+	if (vals.indexOf("Sales") > -1 || vals.indexOf("Operations") > -1)	
+	{
+		if (calEvent.launchtype != null)
+		{
+			if (containsAny(vals, calEvent.launchtype))
+				result=true; 
+			else
+				return false; //result=false;
+		}
+	}
+
+    // P level filters
+    if(vals.indexOf("1") > -1 || vals.indexOf("2") > -1 || vals.indexOf("3") > -1 || vals.indexOf("4") > -1){
+        if(calEvent.orderfield != null){
+            if(containsAny(vals, calEvent.orderfield))
+                result = true;
+            else
+                return false;
+        }
+    }
+    
+     // Type filters - Promotions & Launches
+     //if(vals.indexOf("Promotion") > -1 && vals.indexOf("Launches") == -1) 
+	 if(vals.indexOf("Promotion") > -1) 
+	 {
+		if (calEvent.type != null && calEvent.type == "Promotion")
+			result=true; 
+		//else
+		//	return false;
+	 } 
+     //else if(vals.indexOf("Launches") > -1 && vals.indexOf("Promotion") == -1)
+	 
+     if(vals.indexOf("Launches") > -1)
+     {
+		if (calEvent.type != null && calEvent.type != "Promotion")
+			result=true; 
+		//else
+		//	return false;
+	 }
+     
+
+    
+	//return vals.indexOf(calEvent.description) !== -1;
+	return result;
+}
+
+function savetoPPT(imageData)
+{
+
+	var pptx = new PptxGenJS();
+
+	// STEP 1: Set slide size/layout
+	//pptx.setLayout('LAYOUT_WIDE');
+	
+	pptx.setLayout({ name:'A3', width:16.5, height:11.0 }); // need to keep width at 16.5, otherwise you'll get unpredictable results
+	pptx.setAuthor('HQ GTM');
+	pptx.setCompany('Verizon');
+	pptx.setRevision('1');	
+	//pptx.setLayout('LAYOUT_16x9');
+
+	var slide = pptx.addNewSlide();
+	slide.addImage({
+		x:0.1, y:0.1, w:16.33, h:9.17,
+		data: imageData
+	});
+    var formattedDate = new Date().format('MM-dd-yyyy-HH-mm');
+	var filename = "HQ GTM Calendar";
+	var downloadname = formattedDate + "-" + filename + ".ppt";
+
+	pptx.save(downloadname);
+}
+function openDetail(event) {
+
+	//var href ='https://onesite.verizon.com/sites/HQ_GTM/Lists/GTM%20Feedback/NewForm.aspx';
+	var href ='https://onesite.verizon.com/sites/HQ_GTM/Lists/GTM Dynamic Brief/PopupDisplay.aspx?ID=' + event.id;
+	 OpenPopUpPageWithTitle(href,null,740,600,'Project Overview'); 
+	 //OpenPopUpPageWithTitle(href,null,null,null,'Project Overview'); 
+
+}
+
+function IsDateHasEvent(date) {
+    var allEvents = [];
+    allEvents = $('#calendar').fullCalendar('clientEvents');
+    var event = $.grep(allEvents, function (v) {
+        return +v.start === +date;
+    });
+    return event.length > 0;
+}
+
+function populateHiddenDays(weekday)
+// this is used to figure out which days to display on calendar
+{
+	if(showDays.length > 0)
+	{
+		if($.inArray(weekday, showDays) == -1)
+			showDays.push(weekday);
+	}
+	else
+		showDays.push(weekday);
+}
+function closeIFrame(){
+     //$('#briefframe').hide();
+     //$('#briefframe').css({"display": 'none'});
+     SP.UI.ModalDialog.commonModalDialogClose(SP.UI.DialogResult.Cancel);
+}
+function closeIFrameandRefresh(){
+     //$('#briefframe').hide();
+     //$('#briefframe').css({"display": 'none'});
+    SP.UI.ModalDialog.commonModalDialogClose(SP.UI.DialogResult.Cancel);
+	//var URL = _spPageContextInfo.siteAbsoluteUrl +  _spPageContextInfo.serverRequestPath;
+	window.location.reload();  
+	// do not need any of the fancy redirect below 
+     //SPUtility.Redirect(URL, SPRedirectFlags.Default, HttpContext.Current); // does not work, spredirectflags is undefined
+
+     
+ 	 //SPUtility.Redirect(HttpContext.Current.Request.Url.PathAndQuery, SPRedirectFlags.Default, HttpContext.Current)
+}
+
+
+function doExport(selector, params) {
+  var options = {
+    //ignoreRow: [1,11,12,-2],
+    //ignoreColumn: [0,-1],
+    tableName: 'Countries',
+    worksheetName: 'Countries by population'
+  };
+
+  $.extend(true, options, params);
+
+  $(selector).tableExport(options);
+}
+    
+function addDays(date, days) {
+    var result = new Date(date);
+    result.setDate(result.getDate() + days);
+    return result;
+}
+
+function compareDates (currentDate, startDate, endDate)
+{
+	// 04.03.20  - change comparedates to -3 instead of -7
+
+	var timestamp=Date.parse(currentDate);
+
+	if (isNaN(timestamp)==false)
+	{
+	//LL - this logic is added to compare the date with itself (minus 7 days), not the Monday-Friday limitation
+	//LL - set hours to 0 so that we're only comparing on date, not time
+		var days = -3; //-7;
+		var start = addDays(today, days);
+		var end = addDays(today, 7);
+		currentDate.setHours(0,0,0,0);
+		start.setHours(0,0,0,0);
+		end.setHours(0,0,0,0);
+
+		if (currentDate>= start && currentDate <= end) 
+		{
+			return true;
+		}
+		else return false;
+	}
+}
+
+function createListItem(siteUrl,listName, itemProperties, success, failure) {
+
+	//debugger;
+    var itemType = getItemTypeForListName(listName);
+    itemProperties["__metadata"] = { "type": itemType };
+
+    $.ajax({
+        url: siteUrl + "/_api/web/lists/getbytitle('" + listName + "')/items",
+        type: "POST",
+        contentType: "application/json;odata=verbose",
+        data: JSON.stringify(itemProperties),
+        headers: {
+            "Accept": "application/json;odata=verbose",
+            "X-RequestDigest": $("#__REQUESTDIGEST").val()
+        },
+        success: function (data) {
+            success(data.d);
+        },
+        error: function (data) {
+            failure(data);
+        }
+    });
+}
+
+
