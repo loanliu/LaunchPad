@@ -64,6 +64,314 @@
 			$("#pptimg, .hidden-print").removeClass("nodisplay");
          	}
         });
+
+function getProjectsviaSPRest() {
+  
+	//var filterval = "Channel Ops (Operations support only)";
+	var dynamicbrief = "GTM Dynamic Brief";
+	//var query = "GTM_x0020_Status ne 'Canceled' and Priority_x0020_Level le '4'"; - this works fine
+	// 01/15/2020 changes - do not query support team, use managing channel instead (isB2B)
+	var query = "(isB2B eq 'GTM' or isB2B eq 'CRM') and GTM_x0020_Status eq 'Assigned' and Priority_x0020_Level le '4' and Save_x0020_as_x0020_draft_x003F_ eq 'No' and Launch_x0020_Date ge DateTime'" + firstDay + "' and Launch_x0020_Date le DateTime'" + lastDay + "'" ;
+	// comment out prioirty until we're ready with Sales Ops in production
+	if (isSalesOps)
+			//query = "(Support_x0020_Team_x0028_s_x0029 eq 'Sales Operations (ONLY)') and Sales_x0020_Ops_x0020_Status eq 'Assigned' and Save_x0020_as_x0020_draft_x003F_ eq 'No' and Launch_x0020_Date ge DateTime'" + firstDay + "' and Launch_x0020_Date le DateTime'" + lastDay + "'" ;
+		query = "(Support_x0020_Team_x0028_s_x0029 eq 'Sales Operations (ONLY)') and Sales_x0020_Ops_x0020_Status eq 'Assigned' and Priority_x0020_Level le '4' and Save_x0020_as_x0020_draft_x003F_ eq 'No' and Launch_x0020_Date ge DateTime'" + firstDay + "' and Launch_x0020_Date le DateTime'" + lastDay + "'" ;
+
+	// 03/21/2020 - remove 'Retail_x0020_Channel',
+	sprLib.list(dynamicbrief).getItems({
+	    listCols: ['Id','isB2B','Project_x0020_Name','Launch_x0020_Type','Launch_x0020_Date','Priority_x0020_Level','Should_x0020_this_x0020_be_x0020','Created','Priority_x0020_Assigned_x0020_Da','','Launch_x0020_Date_x0020_Modified','Channel_x0020_Availability','Project_x0020_Name_x0020_Sort','Customer_x0020_Primary_x0020_Use','Parent_x0020_Project_x0020_ID0Id','Promotional_x0020_Timeframe_x003'],
+	    queryFilter: query
+		//queryOrderby: "Launch_x0020_Date,Priority_x0020_Level,Project_x0020_Name"
+	})
+	.then(function(arrData){
+	    arrData.forEach(displayItemviaSPRest)
+	    curSource[0] = events;
+    	events = [];
+    	displayCalendar();
+    	
+		// try to resize content holder to  match calendar content client height now
+		var useHeight = $('#calendar')[0].clientHeight;
+		//$("#html-content-holder").height(useHeight + 200);
+		$('#calendar').fullCalendar({
+	        contentHeight: useHeight
+	    });    	
+        //$('#calendar').height($(window).height()); - this does not do anything
+        
+	})	
+	// v2.0
+	/*.then(function() {
+		$('input:checkbox.calFilter').each(function(i,item) {
+			$(item).attr('checked', !$(item).is(':checked'));
+		});
+	})*/
+	.catch(function(errMsg){ console.log(errMsg) });    
+}
+function displayItemviaSPRest(item, index) {
+    var thisLaunchDate = moment(item.Launch_x0020_Date);
+    thisLaunchDate = new Date(thisLaunchDate).format('MM/dd/yyyy');
+    var thisStart = moment(item.Launch_x0020_Date);
+    var thisStartDate = moment(thisStart);
+	var weekDayName =  moment(thisStart).format('dddd');
+	populateHiddenDays(weekDayName);                    
+    var thisEndDate = moment(thisStart);
+
+    var thisID = item.Id;
+	var titleClassName, thisTitle, priorityClassName;
+    // FullCalendar documentation specifies that recurring events should all have the same id value when building the events array (the id is optional, 
+    //but I'm including it for completeness). We can get the list item ID (which is the same for all instances of recurring events) without the recurrence 
+    //information by simply splitting thisID.
+    var eventID = thisID;
+    var imgURL = '';
+    var projectName = item.Project_x0020_Name;
+    var managingChannel = item.isB2B;
+	var priority = item.Priority_x0020_Level;
+	var launchType = item.Launch_x0020_Type;
+	var createdDt =  item.Created;
+	var createdDate = new Date(createdDt);
+	var priorityAssignedDt = moment(item.Priority_x0020_Assigned_x0020_Da);
+	var priorityAssignedDate = new Date(priorityAssignedDt);					
+	var promoEndDate = item.Promotional_x0020_Timeframe_x003;	
+
+    //var projectNameModifiedDt = moment($( this ).attr( 'ows_Project_x0020_Name_x0020_Modifie'));
+	//var projectNameModifiedDate = new Date(projectNameModifiedDt);
+	var launchDateModifiedDt, launchDateModifiedDate;
+    // #686 - remove parent projects from view        
+    var parentid = item.Parent_x0020_Project_x0020_ID0Id;
+    var index = 0;
+    if (parentid != null)
+    {
+            index = parentid.toString().indexOf(";");
+            if (index >= 0)
+                    parentid = parentid.substring(0, index);
+    }
+    else
+            parentid = 0;
+    if (parentid == thisID && launchType == 'Promotion')  //08.13.20 - only skip parent if this is a promo
+		return;
+	
+	if (managingChannel != null)
+	{
+		if (managingChannel.toLowerCase().indexOf("only") > 0)
+		return;
+	}
+	if (typeof item.Launch_x0020_Date_x0020_Modified != 'undefined')
+	{
+		launchDateModifiedDt = moment(item.Launch_x0020_Date_x0020_Modified);
+		launchDateModifiedDate = new Date(launchDateModifiedDt);
+	}
+	
+    var isDark = item.Should_x0020_this_x0020_be_x0020;
+    var channelAvailability = item.Channel_x0020_Availability;
+    var retailStores = "";//item.Retail_x0020_Channel; Retail channel is removed from Jarvis changes
+    var URL = 'https://onesite.verizon.com/sites/HQ_GTM/Lists/GTM Dynamic Brief/PopupDisplay.aspx?ID=' + thisID;
+    var backgroundCol = '#FFFFFF';
+	titleClassName = 'normalfont';
+ 	priorityClassName = 'normalfont';
+
+    if (isDark == "Yes" && !isExecutive)
+    {
+    	projectName = "Dark Launch";					
+    	priority = "SU";
+    	URL = "";
+    	backgroundCol = '#D3D3D3';
+    	titleClassName= "boldfont";
+    	if (!isDirector)  // for normal HQ GTM Launchpad calendar users, don't display dark
+    		return;
+    	// for Director, display dark only if priority is 1 or 2, channel contains Retail, and Retail stores contains All
+    	//if (priority != "1" && priority != "2")
+    	//	return;
+    	if ($.inArray("Retails", channelAvailability.results) == -1)
+    		return;
+    //	if ($.inArray("Retail (ALL)", retailStores.results) == -1)
+    		//return;
+    }
+    else if (compareDates (launchDateModifiedDate, monday, friday))
+	{
+
+		//titleClassName = 'redboldfont';//'bluefont';
+		//priorityClassName = 'redboldfont';//"bluefont";
+        titleClassName = 'blueboldfont';//'bluefont';
+		priorityClassName = 'blueboldfont';//"bluefont";
+	}
+    
+	/* no longer have to highlight project name change
+    else if (compareDates (projectNameModifiedDate, monday, friday))
+	{
+
+		titleClassName = titleClassName + ' bluefont';
+	}*/
+	if (launchType == "Accessory")
+	{
+		imgURL = 'https://onesite.verizon.com/sites/HQ_GTM/SiteAssets/Images/accessory20.png';
+		launchType = "Sales";
+	}
+	else if (launchType == "Application, Product or Service")
+	{
+		launchType = "Sales";
+		imgURL = 'https://onesite.verizon.com/sites/HQ_GTM/SiteAssets/Images/application20.png';
+	}
+	else if (launchType == "Campaign or Contest")
+	{
+		launchType = "Sales";
+		imgURL = 'https://onesite.verizon.com/sites/HQ_GTM/SiteAssets/Images/campaign20.png'
+	}
+	else if (launchType == "Device")
+	{
+		launchType = "Sales";
+		imgURL = 'https://onesite.verizon.com/sites/HQ_GTM/SiteAssets/Images/device20.png';
+	}
+	else if (launchType == "Price Plan")
+	{
+		launchType = "Sales";
+		imgURL = 'https://onesite.verizon.com/sites/HQ_GTM/SiteAssets/Images/priceplan20.png';
+	}
+	else if (launchType == "Promotion")
+	{
+		launchType = "Sales";
+		imgURL = 'https://onesite.verizon.com/sites/HQ_GTM/SiteAssets/Images/Promotion20.png';
+	}
+	else if (launchType == "System or Process Enhancement" || launchType == "Operations")  // #03.19.20 changes
+	{
+		launchType = "Operations";
+		imgURL = 'https://onesite.verizon.com/sites/HQ_GTM/SiteAssets/Images/system20.png';
+	}
+	else if (launchType == "Fios TV Channel Changes")
+	{
+		imgURL = 'https://onesite.verizon.com/sites/HQ_GTM/SiteAssets/Images/campaign20.png';
+		launchType = "Sales";
+	}
+	
+	if (priority == "1" || priority == "2")
+	{
+		titleClassName = titleClassName + ' boldfont';
+		priorityClassName = priorityClassName + " boldfont";
+    }
+
+	if (compareDates (createdDate, monday, friday))
+	{
+		//titleClassName = 'redboldfont';
+		//priorityClassName = "redboldfont";
+        titleClassName = titleClassName + ' blueboldfont';
+		priorityClassName = priorityClassName + " blueboldfont";
+	}
+
+	if (compareDates (priorityAssignedDate, monday, friday))
+	{
+		//titleClassName = 'redboldfont';
+		//priorityClassName = "redboldfont";
+        titleClassName = titleClassName + ' blueboldfont';
+		priorityClassName = priorityClassName + " blueboldfont";
+	}	
+	
+	//if (priority != 'SU' && priority != 'unassigned')
+    if (promoEndDate == null)
+        thisTitle = "<ul style='padding-inline-start: 15px;margin-block-start: 0px;margin-block-end: 0px;'><li><span class='" + titleClassName + "'>" + projectNameNoEndDate(projectName) + "</span><span class='" + priorityClassName + "'> (P" + priority + ")</span></li></ul>";
+    else 
+        thisTitle = "<ul style='padding-inline-start: 15px;margin-block-start: 0px;margin-block-end: 0px;'><li><span class='" + titleClassName + "'>" + projectNameWithEndDate(projectName, reformatDate(new Date(promoEndDate))) + "</span><span class='" + priorityClassName + "'> (P" + priority + ") - Expires " + reformatDate(new Date(promoEndDate)) + "</span></li></ul>";
+    
+    if ((priority == 'SU' || priority == 'unassigned') && promoEndDate == null)
+		thisTitle = "<ul style='padding-inline-start: 15px;margin-block-start: 0px;margin-block-end: 0px;'><li><span class='" + titleClassName + "'>" + projectNameNoEndDate(projectName) + "</span></li></ul>";
+	else if ((priority == 'SU' || priority == 'unassigned') && promoEndDate != null)
+    	thisTitle = "<ul style='padding-inline-start: 15px;margin-block-start: 0px;margin-block-end: 0px;'><li><span class='" + titleClassName + "'>" + projectNameWithEndDate(projectName, reformatDate(new Date(promoEndDate))) + " - Expires " + reformatDate(new Date(promoEndDate)) + "</span></li></ul>";
+
+    //thisTitle = "<ul style='padding-inline-start: 15px;margin-block-start: 0px;margin-block-end: 0px;'><li><span class='" + titleClassName + "'>" + projectNameNoEndDate(projectName) + "</span><span class='" + priorityClassName + "'> (P" + priority + ")</span></li></ul>";
+    //if (priority == 'SU' || priority == 'unassigned')
+	//	thisTitle = "<ul style='padding-inline-start: 15px;margin-block-start: 0px;margin-block-end: 0px;'><li><span class='" + titleClassName + "'>" + projectNameWithEndDate(projectName, reformatDate(new Date(promoEndDate))) + "</span></ul>";
+	//console.log (thisTitle);
+	// now reformat priority for sorting
+	//var desc = launchType; // no longer use launchType as filter
+	var channel = [];
+	if ($.inArray("All Channels", channelAvailability.results) != -1)
+	{
+		channel.push('ALL');
+	}
+   	else
+   	{ 
+   		//channel.push("Other");
+   		if($.inArray("Telesales", channelAvailability.results) != -1)
+		{
+   			channel.push("Telesales");
+   			//if (channel.indexOf('Other') > -1)   			
+   			//	channel.splice(channel.indexOf('Other'), 1);   			
+   		}
+   		
+   		if ($.inArray("Indirect Agents", channelAvailability.results) != -1 || $.inArray("Prepaid Only Agents", channelAvailability.results) != -1)  // || $.inArray("National Retail", channelAvailability.results) != -1
+   		{
+   			channel.push("Agent");
+   			//if (channel.indexOf('Other') > -1)
+   			//	channel.splice(channel.indexOf('Other'), 1);
+   		}
+   		if($.inArray("Indirect National Retail", channelAvailability.results) > 0)
+   		{
+   			channel.push("NR");
+   			//if (channel.indexOf('Other') > -1)
+   			//	channel.splice(channel.indexOf('Other'), 1);   			
+   		}
+   		if($.inArray("Retail", channelAvailability.results) == 0)
+		{
+   			channel.push("Retail");
+   			//if (channel.indexOf('Other') > -1)   			
+   			//	channel.splice(channel.indexOf('Other'), 1);   			
+   		}
+   		if($.inArray("Fios  Care", channelAvailability.results) != -1 || $.inArray("My Fios App", channelAvailability.results) != -1  || $.inArray("Strategic Sales", channelAvailability.results) != -1)
+		{
+   			channel.push("HomeChannel");
+   			//if (channel.indexOf('Other') > -1)   			
+   			//	channel.splice(channel.indexOf('Other'), 1);   			
+   		}
+   		if($.inArray("VZ.com", channelAvailability.results) != -1 || $.inArray("Verizon Mobile App", channelAvailability.results) != -1  || $.inArray("Verizon Up", channelAvailability.results) != -1 || $.inArray("DFill", channelAvailability.results) != -1 || $.inArray(".com Chatbot", channelAvailability.results) != -1)
+		{
+   			channel.push("Digital");
+   			//if (channel.indexOf('Other') > -1)   			
+   			//	channel.splice(channel.indexOf('Other'), 1);   			
+   		}
+   		if($.inArray("Wireless Care", channelAvailability.results) != -1)
+		{
+   			channel.push("WirelessCare");
+   			//if (channel.indexOf('Other') > -1)   			
+   			//	channel.splice(channel.indexOf('Other'), 1);   			
+   		}
+
+   		/* NO LONGER NEED DOTCOM FILTER if($.inArray("VZ.com", channelAvailability.results) != -1 || $.inArray("My Verizon Mobile App", channelAvailability.results) != -1 ||  $.inArray("My Fios App", channelAvailability.results) != -1)
+	  	{
+   			channel.push("dotcom");
+   			if (channel.indexOf('Other') > -1)   			
+   				channel.splice(channel.indexOf('Other'), 1);   			
+   		}*/
+   	}
+
+	var desc = channel;
+    if ((isNE && launchType == 'NE Market Activity') ||
+     	(isSE && launchType == 'SE Market Activity') ||
+     	(isNC && launchType == 'NC Market Activity') ||
+     	(isSC && launchType == 'SC Market Activity') ||
+     	(isGL && launchType == 'GL Market Activity') ||
+     	(isPC && launchType == 'PC Market Activity') ||
+     	(launchType.indexOf("Market Activity") == -1))           
+	    events.push({
+	        title: thisTitle,
+	        id: eventID,
+	        description: desc,
+	        start: moment.utc(thisStartDate),
+	        end: thisStartDate,
+	        backgroundColor: 'transparent',
+	        className: titleClassName,
+	        //orderfield: item.Project_x0020_Name_x0020_Sort,
+	        orderfield: item.Priority_x0020_Level,
+	        lauchdate: thisLaunchDate,
+	        borderColor: 'transparent',
+	        imageurl: imgURL,
+	        textEscape: false,
+	        url: URL,
+	        isB2B: managingChannel,
+	        customertype:item.Customer_x0020_Primary_x0020_Use,
+	        launchtype:launchType,
+	        type: item.Launch_x0020_Type,
+	        projectname: projectName
+	    });
+
+}
+
 	});	
 });
 
