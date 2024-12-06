@@ -792,5 +792,36 @@ function createListItem(siteUrl,listName, itemProperties, success, failure) {
         }
     });
 }
+// Get List Item Type metadata
+function getItemTypeForListName(name) {
+    return "SP.Data." + name.charAt(0).toUpperCase() + name.split(" ").join("").slice(1) + "ListItem";
+}
+
+function containsAny(source,target)
+{
+    var result = source.filter(function(item){ return target.indexOf(item) > -1});   
+    return (result.length > 0);  
+}  
+
+function containsAnySearch(source,target)
+{
+    var result = target.indexOf(source);
+    return (result > 0);  
+}  
+
+function reformatDate(currDate)
+    {
+        //var newdate = ('0' + (currDate.getMonth()+1)).slice(-2) + '.' + ('0' + currDate.getDate()).slice(-2);
+        var TBD = "TBD";
+        var timestamp=Date.parse(currDate);
+        if (isNaN(timestamp)==false)
+        {
+            var newdate = currDate.getMonth()+1 + '.' + currDate.getDate();
+            return newdate;
+        }
+        else
+            return TBD;
+    }
+
 
 
