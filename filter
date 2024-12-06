@@ -1,0 +1,28 @@
+	var $filterCheckboxes = $('input[name="channel"]');
+	channelCount = $filterCheckboxes.length;	
+	$filterCheckboxes.on('change', function(event) {	
+		/*  this doesn't do anything $filterCheckboxes.filter(':checked').first(function() {
+			if (initialState)
+			{
+				initialState = false;
+				var value = this.value;
+				$filterCheckboxes.each(function() {
+					if (this.value != value)
+						$(this)[0].checked = false;
+				});
+			}
+		});	*/
+		$filterCheckboxes.filter(':not(:checked)').each(function() {
+			//this.labels[0].style.opacity='1';
+			if (initialState){
+				initialState = false;
+				$(this)[0].parentNode.style.opacity='1';
+				var value = this.value;
+				$filterCheckboxes.each(function() {
+					if (this.value != value)
+						$(this)[0].checked = false;
+					else
+						$(this)[0].checked = true;
+				});
+			}
+		});
