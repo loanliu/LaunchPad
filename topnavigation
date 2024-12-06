@@ -1,0 +1,1089 @@
+//TopNavigation_v20.html
+/* -------------------------------------CHANGE LOGS ----------------------------------------------------
+	09.15.20 - remove top icons
+	05.26.20 - send launch date query to archive page
+	04.24.20 - link to new B2B site
+	02.20.20  - clear local storage
+	02.11.20 - remove base64 codes
+	11.28.19 - remove ALL b2b groups (including Test, Verizon Business...
+	10.30.19  - adjust width/height of Feedback popup
+	9.17.19   -  exclude B2B permission groups to speed up response time
+	2.15.19 - LaunchPad 2.0 - TopNavigation will now includes call to UserPermission.
+	6.28.19 - remove href from VCG.png icon href="https://esites.vzbi.com/sites/HQ_GTM/SitePages/GTM%20Home%20Page_v20.aspx"
+-------------------------------------------------------------------------------------------------------*/
+
+var userId = "";
+var profileID = 0;
+var isArchive = false;
+var currentURL = _spPageContextInfo.serverRequestPath.split("/");
+var userRoles = [];
+var securityLevel = 0;
+var calendarLevel = 0;
+var isInternalComm = false;
+var isCRM = false;
+var isPNB = false;
+var isIM = false;
+var isPromo = false;
+var siteAdminArray = [];
+var siteGroupArray = [];
+var userId = "";
+var group;
+var clientContext = new SP.ClientContext();
+var quarter;
+var firstDate;
+var endDate;
+
+    var isCRM = false;
+    var isPNB = false;
+    var isNE = false;
+    var isSE = false;
+    var isNC = false;
+    var isSC = false;
+    var isGL = false;
+    var isPC = false;
+    var isIMCHQ = false;
+    var isIMCFA = false;
+    var isBranding = false;
+    var isPMO = false;
+    var isFWAPMO = false;
+    var isPromo = false;
+    var isDM = false;
+    var isSalesOps = false;
+    var isIMCAdmin = false, isSalesOpsAdmin = false, isUnapprovedPromoAdmin = false;
+    var isUnapprovedPromo = false;
+    var isNBx = false;
+    var isLocal = false;
+    var isGTM, isInterlock, isVPandDirector, isFieldDM, isCalendar, isEveryone=true, isGM, isSalesOps, isSalesOpsGMSM, isSalesOpsExec;
+    var darkIndicator, rrgentDate, urgentMessage1, urgentMessage2, specialMessage, specialMeetingDate;
+    var isCGTM = false;
+
+$(document).ready(function(){
+
+	var today = moment(new Date()).format("LLLL");
+    //$("#timestamp")[0].innerHTML = "Last logon " + today;
+	var now = new Date();
+	quarter = Math.floor((now.getMonth() / 3));
+	firstDate = new Date(now.getFullYear(), quarter * 3, 1);
+	endDate = new Date(firstDate.getFullYear(), firstDate.getMonth() + 3, 0);
+	document.addEventListener('visibilitychange', function () {
+	    if (document.hidden) {
+	        // stop running expensive task
+		   console.log('document is hidden');
+		   localStorage.setItem("lastlogin", new Date());
+	    } else {
+	        // page has focus, begin running task
+			var lastlogin = localStorage.getItem("lastlogin");	   
+		    console.log('document is active, last log in was ' + lastlogin);
+			   
+			if (lastlogin == null)
+			{
+		   		localStorage.setItem("lastlogin", new Date());
+	   		}
+		    else
+		    {
+		    	lastlogin = new Date(lastlogin);
+				var timespan = diff_hours(new Date(), lastlogin);
+				if (timespan > 120)  // testing only - 10 minutes of inactivity - 120 is 2 hours
+				{	
+					console.log ("time between login is " + timespan);
+					localStorage.setItem("lastlogin", new Date());
+					window.location.reload();
+				}
+				else
+				{
+					localStorage.setItem("lastlogin", new Date());
+				}
+			}
+	    }
+	});	
+	
+	/*window.addEventListener('blur', function(){
+	   console.log('blur');
+	   localStorage.setItem("lastlogin", new Date());
+	}, false);
+	
+	window.addEventListener('focus', function(){
+	    console.log('focus');
+		var lastlogin = localStorage.getItem("lastlogin");	      
+		if (lastlogin == null)
+		{
+	   		localStorage.setItem("lastlogin", new Date());
+   		}
+	    else
+	    {
+	    	lastlogin = new Date(lastlogin);
+			var timespan = diff_hours(new Date(), lastlogin);
+			if (timespan > 10)  // testing only - 10 minutes of inactivity
+			{	
+				console.log ("time between login is " + timespan);
+				localStorage.setItem("lastlogin", new Date());
+				window.location.reload();
+			}
+			else
+			{
+				localStorage.setItem("lastlogin", new Date());
+			}
+		}
+
+	}, false);	*/
+	        
+
+	/*if (currentURL.toLowerCase().indexOf("default view") > -1)
+	{
+		$(".ms-list-addnew").css({
+			"display": "none"
+		});
+		$("#s4-ribbonrow").css({
+			"display": "none"
+		});
+	}*/
+
+	ExecuteOrDelayUntilScriptLoaded(updateUserProfilePreFlight, "sp.js");
+	GetCurrentUsername();
+
+	//fnGetSiteAdmins(); -- DON"T NEED THIS, SITE ADMIN WILL SEE EVERYTHING REGARDLESS
+	//userRoles = JSON.parse(localStorage.getItem("userRoles"));		
+	if (userRoles == null || userRoles.length == 0)
+	{
+		userRoles = [];	
+		fnGetSiteGroups();   // this is stored in checkADOMGroup script file
+		//sessionStorage.setItem("userRoles", JSON.stringify(userRoles));
+		localStorage.setItem("userRoles", JSON.stringify(userRoles));	
+	}
+	//decodeBackgroundImage();	
+    checkCalendarViewComplete();
+
+
+});  // end of (document).ready
+
+//updateUserProfilePreFlight defers until getUserId() is "done"
+//then it invokes updateUserProfile
+function updateUserProfilePreFlight(){
+	var currentURL = _spPageContextInfo.serverRequestPath;
+	//$("#suiteBarLeft")[0].innerHTML = "Hosted by the Verizon Consumer GTM Team";
+	if (currentURL.toLowerCase().indexOf("calendar view") == -1)
+	{
+		$("#calendarlegend").css({
+			"display": "none"
+		});
+		$("#calendarheaders").css({
+			"display": "none"
+		});
+		/*$("#assetskey").css({
+			"display": "none"
+		});*/
+	}
+	if (currentURL.toLowerCase().indexOf("gtm calendar view") != -1)
+	{
+		$("#h2header")[0].innerHTML = "Marketing Ops Calendar";	
+		$(".ms-listviewtable").css({
+			//"margin-top": "-44px"
+		});
+		
+	}
+	if (currentURL.toLowerCase().indexOf("calendar view-archive") != -1)
+	{
+		$("#meetingdeck").css({
+			"display": "none"
+		});
+		$("#h2header")[0].innerHTML = "Calendar - Archive";
+		$(".ms-listviewtable").css({
+			//"margin-top": "-40px"
+		});
+		isArchive = true;
+	}
+	if (currentURL.toLowerCase().indexOf("channel ops calendar view") != -1)
+	{
+		$("#h2header")[0].innerHTML = "Channel Ops Calendar";	
+		$(".ms-listviewtable").css({
+			//"margin-top": "-44px"
+		});
+	}
+	if (currentURL.toLowerCase().indexOf("gtm b2b calendar view") != -1)
+	{
+		$("#h2header")[0].innerHTML = "B2B Calendar";	
+		$(".ms-listviewtable").css({
+			//"margin-top": "-44px"
+		});
+	}
+	
+	if (currentURL.toLowerCase().indexOf("crm calendar view") != -1)
+	{
+		$("#h2header")[0].innerHTML = "CRM Calendar";	
+		$(".ms-listviewtable").css({
+			//"margin-top": "-44px"
+		});
+	}
+
+	userId = _spPageContextInfo.userId;
+}
+
+function checkCalendarViewComplete()
+    {
+        //userRoles = JSON.parse(sessionStorage.getItem("userRoles"));	
+        userRoles = JSON.parse(localStorage.getItem("userRoles"));
+        if (userRoles == null || userRoles.length == 0) 
+        {
+            window.setTimeout(checkCalendarViewComplete, 100); //this checks the flag every 100 miliseconds
+        }
+        else
+            fnSetUserProfile();
+    
+    }
+    
+    function fnSetUserProfile()
+    {
+        // 08/14/20 - open up MyView to everyone - not yet
+        //$("#myview").removeClass("nodisplay").addClass('display1');
+        // userRoles are now stored in sessionStorage from UserPermission.html
+        //userRoles = JSON.parse(sessionStorage.getItem("userRoles"));	
+        userRoles = JSON.parse(localStorage.getItem("userRoles"));		
+        if (userRoles == null)
+            userRoles = [];	
+            //|| userRoles[i] == "Sales Ops Admins" || userRoles[i] == "B2B Admins"
+         for (i=0; i < userRoles.length; i++)
+        {
+            if (userRoles[i] == "CGTM Leads" || userRoles[i] == "GTM HQ Super Admin" || userRoles[i] == "IMC Admins" || userRoles[i] == "PMO Admins" || userRoles[i] == "FWA PMO Admins"|| userRoles[i] == "Digital Ops Admins" || userRoles[i] == "Branding ADMINS" || userRoles[i] == "Sales Ops Admins" || userRoles[i] == "B2B Admins")
+            {
+                console.log("i am gtm");
+                isGTM = true;  // turn off for test purposes
+            }
+            
+             if (userRoles[i] == "CGTM Leads")
+            {
+                console.log("i am cgtm");
+                isCGTM = true;  // turn off for test purposes
+            }
+            
+
+            if (userRoles[i] == "Profile_Interlock_User")  //userRoles[i] == "Interlock User"
+            {
+                console.log("i am profile interlock");
+                isInterlock = true;
+                isEveryone = false;
+            }
+            
+            if (userRoles[i] == "Profile_Director_VPs")  //userRoles[i] == "VPs and Directors"
+            {
+                isVPandDirector = true;
+                isEveryone = false;
+            }
+            if (userRoles[i] == "Profile_Field_User")  //userRoles[i] == "Field DM IAMs and Support"
+            {
+                isFieldDM = true;
+                isEveryone = false;
+            }
+    
+            if (userRoles[i] == "Profile_GM_User")  //userRoles[i] == "Field DM IAMs and Support"
+            {
+                isGM = true;
+                isEveryone = false;
+            }
+            
+            if (userRoles[i] == "Profile_Calendar_User")
+            {
+                isCalendar = true;
+                isEveryone = false;
+            }
+            
+            if (userRoles[i] == "IMC Admins" || userRoles[i] == "Branding ADMINS")
+            {
+                if (securityLevel < 4)
+                securityLevel = 4;
+                isIMCAdmin = true;
+            }
+            
+            if (userRoles[i] == "Digital Ops Admins")
+            {
+                if (securityLevel < 2)
+                securityLevel = 2;
+            }
+            if (userRoles[i] == "PMO Admins")
+            {
+                if (securityLevel < 7)
+                securityLevel = 7;  //7
+                isPMO = true;			
+            }
+            if (userRoles[i] == "FWA PMO Admins")
+            {
+                if (securityLevel < 7)
+                securityLevel = 7;  //7
+                isFWAPMO = true;			
+            }
+            if(userRoles[i] == "Local Calendar View"){
+                isLocal = true;
+            }
+            
+            if (userRoles[i] == "Sales Ops Admins")
+            {
+                if (securityLevel < 4)
+                securityLevel = 4;  //7
+                isSalesOps = true;		
+                isSalesOpsAdmin = true;	
+            }
+            
+            if (userRoles[i] == "GTM HQ Super Admin")
+            {
+                securityLevel = 8;
+            }
+            if (userRoles[i] == "IMC HQ Calendar View")
+            {
+                if	(calendarLevel < 1)
+                    calendarLevel = 1;
+                isIMCHQ = true;
+            }
+            if (userRoles[i] == "IMC FA Calendar View")
+            {
+                if	(calendarLevel < 1)
+                    calendarLevel = 1;
+                isIMCFA = true;
+            }
+    
+            if (userRoles[i] == "Branding Calendar View")
+            {
+                if	(calendarLevel < 1)
+                    calendarLevel = 1;
+                isBranding = true;
+            }
+            
+            
+            if (userRoles[i] == "DM_IDM_IAM Calendar View")
+            {
+                if	(calendarLevel < 1)
+                    calendarLevel = 1;
+                isDM = true;
+            }
+            
+            if (userRoles[i] == "PMO Calendar View")
+            {
+                calendarLevel = 7;
+                isPMO = true;
+            }
+            if (userRoles[i] == "FWA PMO CALENDAR VIEW")
+            {
+                calendarLevel = 7;
+                isFWAPMO = true;
+            }
+            
+            if (userRoles[i] == "Sales Ops Calendar View" || userRoles[i] == "Sales Ops Admins")
+            {
+                if	(calendarLevel < 1)
+                    calendarLevel = 1;
+                isSalesOps = true;
+                isEveryone = false;
+            }
+            console.log(userRoles);
+            if (userRoles[i] == "Unapproved Promo Calendar" || userRoles[i] == "DM Promo Team")
+            {
+                if (calendarLevel < 1)
+                    calendarLevel = 1;  //7
+                isUnapprovedPromo = true;		
+            }
+            if (userRoles[i] == "Sales Ops Calendar View GM_SM")
+            {
+                if (calendarLevel < 1)
+                calendarLevel = 1;  //7
+                isSalesOpsGMSM = true;		
+            }
+            if (userRoles[i] == "Sales Ops Calendar View Dir_VP")
+            {
+                if (calendarLevel < 1)
+                calendarLevel = 1;  //7
+                isSalesOpsExec = true;		
+            }
+
+            if (userRoles[i] == "Executive Calendar View")
+		    {
+			    $("#executivecalendar").removeClass("nodisplay").addClass('display');
+		    }
+        }
+
+        if(isCGTM)
+            $("a[href='https://onesite.verizon.com/sites/HQ_GTM/SitePages/GTM%20My%20Calendar.aspx']").attr('href', 'https://onesite.verizon.com/sites/HQ_GTM/SitePages/GTM%20My%20Calendar%20CGTM.aspx');
+
+        if (isGTM)
+        {
+            isInterlock = false;
+            isVPandDirector = false;
+            isFieldDM = false;
+            isGM = false;
+            isCalendar = false;
+            isEveryone = false;
+            $("#alert").removeClass("nodisplay").addClass('display');
+            $("#specialmessage").removeClass("nodisplay").addClass('display');
+
+            $("#admin").removeClass("nodisplay").addClass('display1');
+            $("#admin-divider").removeClass("nodisplay-line");
+
+            $("#archive").removeClass("nodisplay").addClass('display1');
+    
+            //$("#submitbrief").removeClass("nodisplay").addClass('display1');	
+            //$("#myview").removeClass("nodisplay").addClass('display1');		
+            //$("#retrospectives").removeClass("nodisplay").addClass('display1');
+            //$("#infomanager").removeClass("nodisplay").addClass('display1');
+            //$("#newreview").removeClass("nodisplay").addClass('display1');
+            $("#consumerroadmap").removeClass("nodisplay");
+            
+            $("#executiveviewcell").removeClass("hidden").addClass('show');
+            $("#executiveview").removeClass("nodisplay").addClass('display1');
+            $("#executivelist").removeClass("nodisplay").addClass('display1');
+            $("#executivecalendar").removeClass("nodisplay").addClass('display1');
+            $("#fulllist").removeClass("nodisplay").addClass('display1');
+            $("#fullcalendar").removeClass("nodisplay").addClass('display1');
+            $("#dmlist").removeClass("nodisplay").addClass('display1');
+            $("#dmcalendar").removeClass("nodisplay").addClass('display1');
+            $("#gmlist").removeClass("nodisplay").addClass('display1');
+            $("#gmcalendar").removeClass("nodisplay").addClass('display1');
+            $("#salesopcalendar").removeClass("nodisplay").addClass('display1');
+            $("#localcalendar").removeClass("nodisplay").addClass('display1');
+            
+            //$("#peak").css({"display": "none"});
+            //$("#ccrs").css({"display": "none"});
+            // for test purposes only
+            //$("#resourcecentral").removeClass("nodisplay").addClass('display1');
+    
+        }
+        else if(isVPandDirector)
+        {
+            $("#alert").removeClass("nodisplay").addClass('display');
+            $("#specialmessage").removeClass("nodisplay").addClass('display');
+            //$("#archive").removeClass("nodisplay").addClass('display1');	
+            $("#peak").removeClass("nodisplay").addClass('display1');
+            $("#retrospectives").removeClass("nodisplay").addClass('display1');
+    
+            $("#ccrs").removeClass("nodisplay").addClass('display1');
+            $("#consumerroadmap").removeClass("nodisplay");
+
+            $("#executiveviewcell").removeClass("hidden").addClass('show');
+            $("#executiveview").removeClass("nodisplay").addClass('display1');
+            $("#executivelist").removeClass("nodisplay").addClass('display1');
+            $("#executivecalendar").removeClass("nodisplay").addClass('display1');
+            
+            $("#tmprequests").css({"display": "none"});
+            $("#infomanager").css({"display": "none"});
+            $("#newandreview").css({"display": "none"});
+    
+            $("div[id='headerthisweek0']").css({"display": "none"});
+            $("div[id='headernextweek0']").css({"display": "none"});
+            $("div[id='headerthisweek4']").css({"display": "none"});
+            $("div[id='headernextweek4']").css({"display": "none"});
+            
+            $("div[id='material0']").css({"display": "none"});
+            $("div[id='archive0']").css({"display": "none"});
+            $("div[id='material4']").css({"display": "none"});
+            $("div[id='archive4']").css({"display": "none"});				
+            
+        }
+        else if (isInterlock)
+        {
+            $("#alert").removeClass("nodisplay").addClass('display');
+            $("#specialmessage").removeClass("nodisplay").addClass('display');
+            //$("#archive").removeClass("nodisplay").addClass('display1');
+            //$("#unboxd").removeClass("nodisplay").addClass('display1');
+            //$("#retrospectives").removeClass("nodisplay").addClass('display1');
+            $("#consumerroadmap").removeClass("nodisplay");
+        
+            $("#executiveviewcell").removeClass("hidden").addClass('show');
+            $("#executiveview").removeClass("nodisplay").addClass('display1');
+            $("#executivelist").removeClass("nodisplay").addClass('display1');
+            $("#executivecalendar").removeClass("nodisplay").addClass('display1');
+
+            $("div[id='headerthisweek3']").css({"display": "none"});
+            $("div[id='headernextweek3']").css({"display": "none"});
+            $("div[id='material3']").css({"display": "none"});
+            $("div[id='archive3']").css({"display": "none"});	
+            
+            $("#tmprequests").css({"display": "none"});
+            $("#infomanager").css({"display": "none"});
+            $("#newandreview").css({"display": "none"});
+            //$("#retrospectives").css({"display": "none"});
+            $("#peak").css({"display": "none"});
+            $("#ccrs").css({"display": "none"});
+            $("#secondarrows").css({"display": "none"});	
+            $("#retrospectives").removeClass("nodisplay").addClass('display1');
+                
+        }
+        else if(isCalendar)
+        {
+            if (darkIndicator != "1")
+            {
+                $("#alert").removeClass("nodisplay").addClass('display');
+            }
+            //$("#archive").removeClass("nodisplay").addClass('display1');	
+            //$("#submitbrief").removeClass("nodisplay").addClass('display1');	
+            //$("#myview").removeClass("nodisplay").addClass('display1');		
+    
+            //$("#retrospectives").removeClass("nodisplay").addClass('display1');
+            $("#consumerroadmap").removeClass("nodisplay");
+            $("#fulllist").removeClass("nodisplay").addClass('display1');
+            $("#fullcalendar").removeClass("nodisplay").addClass('display1');
+            
+            $("div[id='headerthisweek0']").css({"display": "none"});
+            $("div[id='headernextweek0']").css({"display": "none"});
+            $("div[id='material0']").css({"display": "none"});
+            $("div[id='archive0']").css({"display": "none"});		
+    
+            //$("div[id='headerthisweek1']").css({"display": "none"});
+            //$("div[id='headernextweek1']").css({"display": "none"});
+            //$("div[id='material1']").css({"display": "none"});
+            //$("div[id='archive1']").css({"display": "none"});		
+            
+            $("div[id='headerthisweek2']").css({"display": "none"});
+            $("div[id='headernextweek2']").css({"display": "none"});
+            $("div[id='material2']").css({"display": "none"});
+            $("div[id='archive2']").css({"display": "none"});		
+            
+            //02/01/2021 - open up Field Meeting for Profile_Calendar_User
+            //$("div[id='headerthisweek3']").css({"display": "none"});
+            //$("div[id='headernextweek3']").css({"display": "none"});
+            //$("div[id='material3']").css({"display": "none"});
+            //$("div[id='archive3']").css({"display": "none"});	
+    
+            $("div[id='headerthisweek4']").css({"display": "none"});
+            $("div[id='headernextweek4']").css({"display": "none"});
+            $("div[id='material4']").css({"display": "none"});
+            $("div[id='archive4']").css({"display": "none"});	
+            
+            //$("#meetingsection").css({"display": "none"});
+            $("#launcharrows2").css({"display": "none"});
+            //$("#materialoutercontainer").css({"display": "none"});
+            //$("#thisweekoutercontainer").css({"display": "none"});		
+            //$("#nextweekoutercontainer").css({"display": "none"});
+            //$("#archiveoutercontainer").css({"display": "none"});
+    
+            $("#tmprequests").css({"display": "none"});
+            $("#infomanager").css({"display": "none"});
+            $("#newandreview").css({"display": "none"});
+            $("#peak").css({"display": "none"});
+            $("#ccrs").css({"display": "none"});
+            $("#retrospectives").removeClass("nodisplay").addClass('display1');
+        }	
+        else if(isFieldDM)
+        {
+            // permission changes
+            // isGM = false;
+            if (darkIndicator != "1")
+            {
+                $("#alert").removeClass("nodisplay").addClass('display');
+                $("#specialmessage").removeClass("nodisplay").addClass('display');
+            }
+            
+            $("#peak").removeClass("nodisplay").addClass('display1');
+            $("#ccrs").removeClass("nodisplay").addClass('display1');
+            $("#consumerroadmap").removeClass("nodisplay");
+            $("#dmlist").removeClass("nodisplay").addClass('display1');
+            $("#dmcalendar").removeClass("nodisplay").addClass('display1');
+            
+            $("div[id='headerthisweek0']").css({"display": "none"});
+            $("div[id='headernextweek0']").css({"display": "none"});
+            $("div[id='material0']").css({"display": "none"});
+            $("div[id='archive0']").css({"display": "none"});		
+    
+            //$("div[id='headerthisweek1']").css({"display": "none"});
+            //$("div[id='headernextweek1']").css({"display": "none"});
+            //$("div[id='material1']").css({"display": "none"});
+            //$("div[id='archive1']").css({"display": "none"});		
+            
+            $("div[id='headerthisweek2']").css({"display": "none"});
+            $("div[id='headernextweek2']").css({"display": "none"});
+            $("div[id='material2']").css({"display": "none"});
+            $("div[id='archive2']").css({"display": "none"});		
+    
+            $("div[id='headerthisweek4']").css({"display": "none"});
+            $("div[id='headernextweek4']").css({"display": "none"});
+            $("div[id='material4']").css({"display": "none"});
+            $("div[id='archive4']").css({"display": "none"});	
+            
+            $("#retrospectives").css({"display": "none"});
+            $("#tmprequests").css({"display": "none"});
+            $("#infomanager").css({"display": "none"});
+            $("#newandreview").css({"display": "none"});
+        
+            $("#secondarrows").css({"display": "none"});	
+            $("#resourcecentral").removeClass("nodisplay").addClass('display1');
+            //$("#sfdc").removeClass("nodisplay").addClass('display1');
+            //$("#voice").removeClass("nodisplay").addClass('display1');
+    
+        }
+        else if(isGM)
+        {
+            if (darkIndicator != "1")
+            {
+                $("#alert").removeClass("nodisplay").addClass('display');
+                $("#specialmessage").removeClass("nodisplay").addClass('display');
+            }
+            
+            $("#peak").removeClass("nodisplay").addClass('display1');
+            $("#ccrs").removeClass("nodisplay").addClass('display1');
+            $("#consumerroadmap").removeClass("nodisplay");
+            $("#gmlist").removeClass("nodisplay").addClass('display1');
+            $("#gmcalendar").removeClass("nodisplay").addClass('display1');
+            
+            $("div[id='headerthisweek0']").css({"display": "none"});
+            $("div[id='headernextweek0']").css({"display": "none"});
+            $("div[id='material0']").css({"display": "none"});
+            $("div[id='archive0']").css({"display": "none"});		
+            
+            $("div[id='headerthisweek2']").css({"display": "none"});
+            $("div[id='headernextweek2']").css({"display": "none"});
+            $("div[id='material2']").css({"display": "none"});
+            $("div[id='archive2']").css({"display": "none"});		
+    
+            $("div[id='headerthisweek4']").css({"display": "none"});
+            $("div[id='headernextweek4']").css({"display": "none"});
+            $("div[id='material4']").css({"display": "none"});
+            $("div[id='archive4']").css({"display": "none"});	
+            
+            $("#retrospectives").css({"display": "none"});
+            $("#tmprequests").css({"display": "none"});
+            $("#infomanager").css({"display": "none"});
+            $("#newandreview").css({"display": "none"});
+        
+            $("#secondarrows").css({"display": "none"});	
+            $("#resourcecentral").removeClass("nodisplay").addClass('display1');
+            $("#meetingsection").css({"display": "none"});	
+            $("#thisweekoutercontainer").css({"display": "none"});
+            $("#materialoutercontainer").css({"display": "none"});
+            $("#nextweekoutercontainer").css({"display": "none"});
+            $("#archiveoutercontainer").css({"display": "none"});
+            $("#launcharrows2").css({"display": "none"});	
+            $("#sfdc").removeClass("nodisplay").addClass('display1');
+            $("#voice").removeClass("nodisplay").addClass('display1');
+        }
+        
+    
+        else if (isSalesOps || isSalesOpsGMSM || isSalesOpsExec)
+        {
+            //$("#submitbrief").removeClass("nodisplay").addClass('display1');	
+            //$("#myview").removeClass("nodisplay").addClass('display1');	
+            $("#consumerroadmap").removeClass("nodisplay");
+            $(".usertips").css({"display": "none"});
+            $("#happeningcontainer").css({"display": "none"});
+            $("#meetingbanner").css({"display": "none"});	
+            $("#launcharrows1").css({"display": "none"});
+            $("#launcharrows2").css({"display": "none"});
+            $("#thisweekoutercontainer").css({"display": "none"});
+            $("#calendarcontainer").css({"display": "none"});
+            $("#materialoutercontainer").css({"display": "none"});
+            $("#nextweekoutercontainer").css({"display": "none"});
+            $("#archiveoutercontainer").css({"display": "none"});
+            
+            $("#tmprequests").css({"display": "none"});
+            $("#retrospectives").css({"display": "none"});
+            $("#newandreview").css({"display": "none"});
+            $("#peak").css({"display": "none"});
+            $("#ccrs").css({"display": "none"});
+            $(".footerstart").css({"margin-top": "78px"});
+        
+        }
+        else if (isUnapprovedPromo)
+        {
+            console.log("i am unapproved");
+            //$("#submitbrief").removeClass("nodisplay").addClass('display1');	
+            //$("#myview").removeClass("nodisplay").addClass('display1');	
+            $("#consumerroadmap").removeClass("nodisplay");
+            $(".usertips").css({"display": "none"});
+            $("#happeningcontainer").css({"display": "none"});
+            $("#meetingbanner").css({"display": "none"});	
+            $("#launcharrows1").css({"display": "none"});
+            $("#launcharrows2").css({"display": "none"});
+            $("#thisweekoutercontainer").css({"display": "none"});
+            $("#calendarcontainer").css({"display": "none"});
+            $("#materialoutercontainer").css({"display": "none"});
+            $("#nextweekoutercontainer").css({"display": "none"});
+            $("#archiveoutercontainer").css({"display": "none"});
+            
+            $("#tmprequests").css({"display": "none"});
+            $("#retrospectives").css({"display": "none"});
+            $("#newandreview").css({"display": "none"});
+            $("#peak").css({"display": "none"});
+            $("#ccrs").css({"display": "none"});
+            $(".footerstart").css({"margin-top": "78px"});
+        }
+        
+        else if (isEveryone)
+        {
+            //$("#submitbrief").removeClass("nodisplay").addClass('display1');	
+            //$("#myview").removeClass("nodisplay").addClass('display1');	
+            $("#roadmap").remove();   //08/09/21 change
+            //$("#consumerroadmap").remove();
+            $(".usertips").css({"display": "none"});
+            //$("#happeningcontainer").css({"display": "none"}); //08/09/21 change
+            $("#meetingbanner").css({"display": "none"});	
+            $("#launcharrows1").css({"display": "none"});
+            $("#launcharrows2").css({"display": "none"});
+            $("#thisweekoutercontainer").css({"display": "none"});
+            $("#calendarcontainer").css({"display": "none"});
+            $("#materialoutercontainer").css({"display": "none"});
+            $("#nextweekoutercontainer").css({"display": "none"});
+            $("#archiveoutercontainer").css({"display": "none"});
+            
+            $("#tmprequests").css({"display": "none"});
+            $("#retrospectives").css({"display": "none"});
+            $("#newandreview").css({"display": "none"});
+            $("#peak").css({"display": "none"});
+            $("#ccrs").css({"display": "none"});
+            $(".footerstart").css({"margin-top": "78px"});
+            $("#historical").css({"display": "none"});	// 04.09.21 - do not show historical to "Everyone"
+            $("#fwaplaybook").css({"display": "none"});	
+            $("#fieldqa").css({"display": "none"});	
+        }
+        setPersonalIcons();
+    }
+
+function setPersonalIcons()
+    {
+        if (securityLevel > 0)
+        {
+            $("#adminview").removeClass("nodisplay").addClass('display');
+            if (securityLevel == 1)
+            {
+                if (isInternalComm)
+                    $("a[href='https://onesite.verizon.com/sites/HQ_GTM/SitePages/GTM%20Admin%20View.aspx']").attr('href', 'https://onesite.verizon.com/sites/HQ_GTM/SitePages/GTM%20IC%20Calendar.aspx');
+        
+            }
+            if (securityLevel == 2)
+                $("a[href='https://onesite.verizon.com/sites/HQ_GTM/SitePages/GTM%20Admin%20View.aspx']").attr('href', 'https://onesite.verizon.com/sites/HQ_GTM/SitePages/GTM%20DO%20Admin%20View.aspx');
+            if (securityLevel == 4)
+            {
+                if (isIMCAdmin)
+                    $("a[href='https://onesite.verizon.com/sites/HQ_GTM/SitePages/GTM%20Admin%20View.aspx']").attr('href', 'https://onesite.verizon.com/sites/HQ_GTM/SitePages/GTM%20IMC%20Admin%20View.aspx');
+                else  if (isSalesOpsAdmin)
+                {
+                    $("#admin").removeClass("nodisplay").addClass('display1');
+                    $("#admin-divider").removeClass("nodisplay-line");
+                    $("a[href='https://onesite.verizon.com/sites/HQ_GTM/SitePages/GTM%20Admin%20View.aspx']").attr('href', 'https://onesite.verizon.com/sites/HQ_GTM/SitePages/GTM%20Sales%20Ops%20Admin%20View.aspx');
+                }
+            }
+            /*if (securityLevel == 5)
+            {
+                $("a[href='https://esites.vzbi.com/sites/HQ_GTM/SitePages/GTM%20Admin%20View.aspx']").attr('href', 'https://esites.vzbi.com/sites/HQ_GTM/SitePages/GTM%20Consumer%20Ops%20Admin%20View.aspx');
+            }
+            if (securityLevel == 6)
+                $("a[href='https://esites.vzbi.com/sites/HQ_GTM/SitePages/GTM%20Admin%20View.aspx']").attr('href', 'https://esites.vzbi.com/sites/HQ_GTM/SitePages/GTM%20MediaCo%20Admin%20View.aspx');*/
+            if (securityLevel == 7)
+            {
+                if (isPMO)
+                    $("a[href='https://onesite.verizon.com/sites/HQ_GTM/SitePages/GTM%20Admin%20View.aspx']").attr('href', 'https://onesite.verizon.com/sites/HQ_GTM/SitePages/GTM%20PMO%20Admin%20View.aspx');
+                if (isFWAPMO)
+                    $("a[href='https://onesite.verizon.com/sites/HQ_GTM/SitePages/GTM%20Admin%20View.aspx']").attr('href', 'https://onesite.verizon.com/sites/HQ_GTM/SitePages/GTM%20FWA%20PMO%20Admin%20View.aspx');
+            }	
+        }
+        console.log("calendar level" + calendarLevel);
+        if (calendarLevel == 1)
+        {
+            if (isIMCHQ)
+            {
+                $("#imhqcalendar").removeClass("nodisplay").addClass("display");	
+            }
+            if(isLocal){
+                $("#localcalendar").removeClass("nodisplay").addClass("display1");
+            }
+            if (isIMCFA)
+            {
+                $("#imfacalendar").removeClass("nodisplay").addClass("display");	
+            }
+            if (isBranding)
+            {
+                $("#brandcalendar").removeClass("nodisplay").addClass("display");	
+            }
+            if (isSalesOps)
+            {
+                $("#salesops").removeClass("nodisplay").addClass("display");	
+                $("#salesopscalendar").removeClass("nodisplay").addClass("display");	
+            }
+            if (isSalesOpsGMSM)
+            {
+                $("#salesopsgmsm").removeClass("nodisplay").addClass("display");	
+                $("#salesopsgmsmcalendar").removeClass("nodisplay").addClass("display");	
+            }
+            if (isSalesOpsExec)
+            {
+                $("#salesopsexec").removeClass("nodisplay").addClass("display");	
+                $("#salesopsexeccalendar").removeClass("nodisplay").addClass("display");	
+            }
+            
+            if (isUnapprovedPromo)
+            {
+                console.log("showing unapproved");
+                $("#unapproved").removeClass("nodisplay").addClass("display");	
+                $("#unapprovedcalendar").removeClass("nodisplay").addClass("display");	
+            }
+            
+            if (isPMO)
+            {
+                $("#pmocalendar").removeClass("nodisplay").addClass("display");	
+            }
+            if (isFWAPMO)
+            {
+                $("#fwapmocalendar").removeClass("nodisplay").addClass("display");	
+            }
+            if (isDM)
+            {
+                $("a[href='https://onesite.verizon.com/sites/HQ_GTM/SitePages/GTM%20Calendar%20View.aspx']").attr('href', 'https://onesite.verizon.com/sites/HQ_GTM/SitePages/GTM DM Calendar View.aspx');
+                $("#calendarview").removeClass("nodisplay").addClass("display");	
+            }
+
+             //permission changes
+            if (isFieldDM){
+                $("#dmcalendarwaag").removeClass("nodisplay").addClass("display");	
+                $("#dmcalendar").removeClass("nodisplay").addClass("display");	
+            }
+            
+            if (isCalendar)
+            {
+                $("#fullcalendarwaag").removeClass("nodisplay").addClass("display");	
+                $("#fullcalendar").removeClass("nodisplay").addClass("display");	
+            }
+
+            if (isDM)
+            {
+                $("#dmcalendarwaag").removeClass("nodisplay").addClass("display");	
+                $("#dmcalendar").removeClass("nodisplay").addClass("display");	
+            }
+
+            if(isGM){
+                $("#gmcalendarwaag").removeClass("nodisplay").addClass("display");	
+                $("#gmcalendar").removeClass("nodisplay").addClass("display");	
+            }
+
+            if(isFWAPMO){
+                $("#fwapmocalendar").removeClass("nodisplay").addClass("display");	
+                $("#fwapmocalendarwaag").removeClass("nodisplay").addClass("display");	
+            }
+            //up to here
+        
+        }
+        else if (calendarLevel == 5)
+            $("a[href='https://onesite.verizon.com/sites/HQ_GTM/SitePages/ChannelCalendar.aspx']").attr('href', 'https://onesite.verizon.com/sites/HQ_GTM/SitePages/GTM Consumer Ops Calendar View.aspx');		
+        else if (calendarLevel == 7)
+        {
+            if (isIMCHQ)
+            {
+                $("a[href='https://onesite.verizon.com/sites/HQ_GTM/SitePages/ChannelCalendar.aspx']").attr('href', 'https://onesite.verizon.com/sites/HQ_GTM/SitePages/GTM IMC Calendar View.aspx');
+                $("#imhqcalendar").removeClass("nodisplay").addClass("display");		
+            }
+            if(isLocal){
+                $("#localcalendar").removeClass("nodisplay").addClass("display1");
+            }
+            if (isIMCFA)
+            {
+                $("a[href='https://onesite.verizon.com/sites/HQ_GTM/SitePages/ChannelCalendar.aspx']").attr('href', 'https://onesite.verizon.com/sites/HQ_GTM/SitePages/GTM%20IMC%20Field%20Activation%20Calendar%20View.aspx');
+                $("#imfacalendar").removeClass("nodisplay").addClass("display");		
+            }
+            if (isBranding)
+            {
+                $("a[href='https://onesite.verizon.com/sites/HQ_GTM/SitePages/ChannelCalendar.aspx']").attr('href', 'https://onesite.verizon.com/sites/HQ_GTM/SitePages/GTM%20Brand%20Calendar%20View.aspx');
+                $("#brandcalendar").removeClass("nodisplay").addClass("display");		
+            }
+            
+            if (isPMO)
+            {
+                $("a[href='https://onesite.verizon.com/sites/HQ_GTM/SitePages/ChannelCalendar.aspx']").attr('href', 'https://onesite.verizon.com/sites/HQ_GTM/SitePages/GTM PMO Calendar View.aspx');
+                $("#pmocalendar").removeClass("nodisplay").addClass("display");		
+            }
+            if (isFWAPMO)
+            {
+                $("a[href='https://onesite.verizon.com/sites/HQ_GTM/SitePages/ChannelCalendar.aspx']").attr('href', 'https://onesite.verizon.com/sites/HQ_GTM/SitePages/GTM FWA PMO Calendar View.aspx');
+                $("#fwapmocalendar").removeClass("nodisplay").addClass("display");		
+            }
+            
+            if (isSalesOps)
+            {
+                $("a[href='https://onesite.verizon.com/sites/HQ_GTM/SitePages/ChannelCalendar.aspx']").attr('href', 'https://onesite.verizon.com/sites/HQ_GTM/SitePages/GTM%20Sales%20Ops%20Calendar%20View.aspx');
+                $("#salesops").removeClass("nodisplay").addClass("display");	
+                $("#salesopscalendar").removeClass("nodisplay").addClass("display");	
+            }
+            if (isUnapprovedPromo)
+            {
+                $("#unapproved").removeClass("nodisplay").addClass("display");	
+                $("#unapprovedcalendar").removeClass("nodisplay").addClass("display");	
+            }
+            if (isSalesOpsGMSM)
+            {
+                $("#salesopsgmsm").removeClass("nodisplay").addClass("display");	
+                $("#salesopsgmsmcalendar").removeClass("nodisplay").addClass("display");	
+            }
+            if (isSalesOpsExec)
+            {
+                $("#salesopsexec").removeClass("nodisplay").addClass("display");	
+                $("#salesopsexeccalendar").removeClass("nodisplay").addClass("display");	
+            }
+
+             //permission changes
+            if (isFieldDM){
+                $("#dmcalendarwaag").removeClass("nodisplay").addClass("display");	
+                $("#dmcalendar").removeClass("nodisplay").addClass("display");	
+            }
+            
+            if (isCalendar)
+            {
+                $("#fullcalendarwaag").removeClass("nodisplay").addClass("display");	
+                $("#fullcalendar").removeClass("nodisplay").addClass("display");	
+            }
+
+            if (isDM)
+            {
+                $("#dmcalendarwaag").removeClass("nodisplay").addClass("display");	
+                $("#dmcalendar").removeClass("nodisplay").addClass("display");	
+            }
+
+            if(isGM){
+                $("#gmcalendarwaag").removeClass("nodisplay").addClass("display");	
+                $("#gmcalendar").removeClass("nodisplay").addClass("display");	
+            }
+
+            if(isFWAPMO){
+                $("#fwapmocalendar").removeClass("nodisplay").addClass("display");	
+                $("#fwapmocalendarwaag").removeClass("nodisplay").addClass("display");	
+            }
+            //up to here
+        }  else {
+            if(isLocal){
+                $("#localcalendar").removeClass("nodisplay").addClass('display1');
+            }
+
+            //permission changes
+            if (isFieldDM){
+                $("#dmcalendarwaag").removeClass("nodisplay").addClass("display");	
+                $("#dmcalendar").removeClass("nodisplay").addClass("display");	
+            }
+            
+            if (isCalendar)
+            {
+                $("#fullcalendarwaag").removeClass("nodisplay").addClass("display");	
+                $("#fullcalendar").removeClass("nodisplay").addClass("display");	
+            }
+
+            if (isDM)
+            {
+                $("#dmcalendarwaag").removeClass("nodisplay").addClass("display");	
+                $("#dmcalendar").removeClass("nodisplay").addClass("display");	
+            }
+
+            if(isGM){
+                $("#gmcalendarwaag").removeClass("nodisplay").addClass("display");	
+                $("#gmcalendar").removeClass("nodisplay").addClass("display");	
+            }
+
+            if(isVPandDirector){
+                $("#gmcalendarwaag").removeClass("nodisplay").addClass("display");	
+                $("#gmcalendar").removeClass("nodisplay").addClass("display");	
+            }
+
+            if(isFWAPMO){
+                $("#fwapmocalendar").removeClass("nodisplay").addClass("display");	
+                $("#fwapmocalendarwaag").removeClass("nodisplay").addClass("display");	
+            }
+            //up to here
+        }
+    }
+    
+  
+function GetCurrentUsername()
+{
+  userId = _spPageContextInfo.userId;
+  var requestUri = _spPageContextInfo.webAbsoluteUrl + "/_api/web/getuserbyid(" + userId + ")";
+  var requestHeaders = { "accept" : "application/json;odata=verbose" };
+  $.ajax({
+    url : requestUri,
+    contentType : "application/json;odata=verbose",
+    headers : requestHeaders,
+    success : onSuccess,
+    error : onError
+  });
+}
+
+function onSuccess(data, request){
+	//sessionStorage.setItem("loginName", data.d.Title);
+	localStorage.setItem("loginName", data.d.Title);
+}
+
+function onError(error) {
+	alert("error");
+}
+
+function openFeedback() {
+	var currentURL = _spPageContextInfo.serverRequestPath.split("/");
+	var href ='https://onesite.verizon.com/sites/HQ_GTM/Lists/GTM%20Feedback/NewForm.aspx?title=' + currentURL[currentURL.length - 1].replace(/\ /g,'__');
+	OpenPopUpPageWithTitle(href,null,500,580,'GTM Question/Feedback'); 
+}
+
+
+function fnGetSiteGroups()
+{
+	//if (v20 == null)
+	//	v20 = "";
+    jQuery.ajax({
+        url: _spPageContextInfo.webAbsoluteUrl + "/_api/web/siteGroups",
+        method: "GET",
+        async: false,
+        headers: {
+            "accept": "application/json;odata=verbose",
+        },
+        success: function(data) {
+            data.d.results.forEach(function(group) {
+            	if (group.Title.toLowerCase().indexOf("b2b") > -1 || group.Title.toLowerCase().indexOf("test") > -1 || group.Title.toLowerCase().indexOf("verizon business") > -1  || group.Title.toLowerCase().indexOf("stackability editor") > -1 || group.Title.toLowerCase().indexOf("microsite") > -1 || group.Title.toLowerCase().indexOf("consumer brief") > -1 || group.Title.toLowerCase().indexOf("gtm qa") > -1)
+            		a = 1;
+            	else
+                	siteGroupArray.push({id:group.Id, title:group.Title});
+            });
+        },
+        error: function(error) {
+            //alert(JSON.stringify(error));
+            console.log(JSON.stringify(error));
+        }
+    });
+	for (i=0;i<siteGroupArray.length;i++)
+	{
+		//if (v20 ==  "" || (v20 == "Yes" && (siteGroupArray[i].title.indexOf("Admin") > -1 || siteGroupArray[i].title.indexOf("Calendar") > -1 || siteGroupArray[i].title.indexOf("Profile_") > -1 || siteGroupArray[i].title == "CGTM Leads")))
+		checkADOMGroup(siteGroupArray[i].id, siteGroupArray[i].title, function(check) {
+			if (check)
+			{
+				if ($.inArray(siteGroupArray[i].title, userRoles) == -1)
+					userRoles.push(siteGroupArray[i].title);
+			}
+		});
+	}
+	//fnSetPermissions();
+}
+
+function checkADOMGroup(groupId, title, callback)
+{
+	group = clientContext.get_web().get_siteGroups().getById(groupId);
+    var url = _spPageContextInfo.webAbsoluteUrl;
+    var requestUri = url + "/_api/web/sitegroups/getbyname('" + title + "')/CanCurrentUserViewMembership";
+    $.ajax({
+        url: requestUri,
+        type: "GET",
+        headers: { "ACCEPT": "application/json;odata=verbose" },
+        async: false,
+        success: function (data) {
+        	var isMember = data.d.CanCurrentUserViewMembership;
+    		callback(isMember);
+        },
+        error: function (err) {
+            callback(false);
+        }
+    });
+}
+
+function decodeBackgroundImage()
+{
+}
+
+function diff_hours(dt2, dt1) 
+{
+
+  var diff =(dt2.getTime() - dt1.getTime()) / 1000;
+  //diff /= (60 * 60);
+  diff /= 60;
+  return Math.abs(Math.round(diff)); // this is in minutes unit
+  
+}
+
+function openHome(home) {
+  document.getElementById(home).classList.add("tab-border");
+}
+
+</script>
