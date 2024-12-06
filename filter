@@ -26,3 +26,44 @@
 				});
 			}
 		});
+	/*=====PPT CLICK BUTTON =========================*/
+	$("#btn-Convert-Html2Image").on('click', function () {
+		//var getCanvas, imageData ;
+		//$("#btn-Preview-Image").click();
+		//getImage();
+		//$("#btn-Convert-Html2Image, .hidden-print").addClass("nodisplay");
+		$(".hidden-print").addClass("nodisplay");
+
+		//if (curSource[0].length > 10 || curSource[1].length > 10) 
+		//	userHeight = useHeight + 400;
+		//var table = document.getElementById("tableId");
+		//var $table = $('div.fc-view.fc-month-view.fc-basic-view > table');
+		//alert($table.offsetHeight);	
+		//useHeight = $('#calendar').scrollTop() + $('#html-content-holder').prop('scrollHeight');
+		useHeight = $('#calendar').prop('scrollHeight');
+		//var useHeight = $('#calendar')[0].clientHeight;
+		//$("#html-content-holder").height(useHeight + 50);
+		var element = $("#html-content-holder"); // global variable
+		$("#calendar").scrollTop(0);
+		
+		//$(".fc-day-grid-container").scrollTop(0);
+		
+        html2canvas(element, {
+	    height: useHeight,
+	    useCORS: true,
+	    allowTaint: true,
+	    onrendered: function (canvas) {
+	        getCanvas = canvas;
+	        imageData = getCanvas.toDataURL("image/png");
+		    var newData = imageData.replace(/^data:image\/png/, "data:application/octet-stream");
+		    var formattedDate = new Date().format('MM-dd-yyyy-HH-mm');
+			var filename = "GTM Launch Calendar";
+			var downloadname = formattedDate + "-" + filename + ".png";
+			savetoPPT(imageData);
+			$("#btn-Convert-Html2Image, .hidden-print").removeClass("nodisplay");
+			$("#pptimg, .hidden-print").removeClass("nodisplay");
+         	}
+        });
+	});	
+});
+
