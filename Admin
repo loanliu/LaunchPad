@@ -1,0 +1,693 @@
+var projectname_col= 0;
+var b2b_col, launchtype_col=0, mktldrpresenter_col;
+var currentURL = _spPageContextInfo.serverRequestPath;
+var selectedFilters;
+var saturday_col, sunday_col,launchdate_timestamp_col, priorityassigned_col, dolead_col, crmlead_col, gtmlead_col, launchdate_col, supportteam_col, pmolead_col, imclead_col, srmanagerlead_col;
+var today = new Date();
+var du = 4000;
+var currentURL = _spPageContextInfo.serverRequestPath;
+//$( document ).tooltip();
+// Set up tool tips for meeting dates only. - commented out 10/31/21
+/*$( document ).tooltip({
+   items: ".ToolTip[title]",
+   track: true,
+    show: {
+        effect: 'slideDown'
+    },
+    track: true,
+    open: function (event, ui) {
+        setTimeout(function () {
+            $(ui.tooltip).hide('explode');
+        }, du);
+    }, 
+   content: function() {
+      var element = $( this );
+      // Any element with toolTip class - use title.
+      if ( element.is( ".ToolTip[title]" ) ) {
+         return element.attr( "title" );
+      }
+      else
+      	return null;
+   }
+});
+*/
+
+$(document).ready(function () {
+	// add stickly header for non B2B admin
+	//debugger;
+	if (currentURL.toLowerCase().indexOf("gtm b2b admin") == -1)
+	{	
+		$.getScript("https://onesite.verizon.com/sites/HQ_GTM/SiteAssets/Scripts/stickyHeaders_3.1.0.js", function(data, textStatus, jqxhr) {
+		});		
+	}
+	if (currentURL.indexOf("GTM PMO Admin View") > -1)
+	{
+		$(".ms-listviewtable").css({
+			"margin-top": "-15px"
+		});
+	}	
+	if (currentURL.indexOf("GTM All Briefs") > -1)
+	{
+	  var header = $("table.ms-listviewtable");
+	  var table = $("#bottomPagingWPQ5");
+	
+	    if(header && table)
+	    {
+	        //table.insertBefore(header);
+	        table.clone().insertBefore(header); 
+	    }
+	    else
+	    {
+	        alert('jQuery did not found Elements');
+	    }	
+	}
+	sessionStorage.setItem("referralURL", currentURL);
+	var tables = $("table.ms-listviewtable")
+	getColumnIndex(tables);	
+    $("#sideNavBox").css("display", "none");
+    $("#contentBox").css("margin-left", "20px");
+	//changeDays();	
+    //fnChangeColumnHeading();
+    fnReformatPresenter();  // this reformats all people columns with multiple entries (gtm lead, crm lead, etc)
+	fnDecodeURI();
+	fnHighlightSpecialRows();
+
+	//if (currentURL.indexOf("GTM Admin View") > -1)  //launchtype_col > 0 && 
+	//	fnRemoveMarketRows();
+
+	/* No longer needed
+	setTimeout(function(){
+		if (currentURL.indexOf("GTM Admin View") > -1)  //launchtype_col > 0 && 
+			fnRemoveMarketRows();
+	},3000); */
+    $(".meetingagendas").click(function() {
+    	$(".meetingagendas-img-swap").click();
+    })
+   
+    $(".admintasks").click(function() {
+    	$(".admintasks-img-swap").click();
+    })
+    
+    $(".b2badmintasks").click(function() {
+    	$(".b2badmintasks-img-swap").click();
+    })
+    $(".pnbadmintasks").click(function() {
+    	$(".pnbadmintasks-img-swap").click();
+    })
+    
+    $(".opsadmintasks").click(function() {
+    	$(".opsadmintasks-img-swap").click();
+    })
+
+    
+    $(".allbriefs").click(function() {
+    	$(".allbriefs-img-swap").click();
+    })
+    
+     
+    $(".priorityreview").click(function() {
+    	$(".priorityreview-img-swap").click();
+    })
+   
+    $(".tbdbriefs").click(function() {
+    	$(".tbdbriefs-img-swap").click();
+    })
+ 
+   
+    $(".unassigned").click(function() {
+    	$(".unassigned-img-swap").click();
+    })
+   
+    $(".workinprogress").click(function() {
+    	$(".workinprogress-img-swap").click();
+    })
+
+SP.SOD.executeFunc("clienttemplates.js", "SPClientTemplates", function() {
+	SPClientTemplates.TemplateManager.RegisterTemplateOverrides({
+	  OnPreRender: function() { //console.log('CSR OnPreRender'); 
+	  },
+  	OnPostRender: [
+    function() { 
+    //console.log('CSR OnPostRender'); 
+    },
+    function() { 
+    //if (resetScreen)
+    	// try this to preserve filtering after export 
+		//window.location.href=ctx.queryString;
+    	actionHeader();
+    	}
+  	]
+	});
+}); 	
+	/* this does not work at all
+	setTimeout(function() {
+		    $(".meetingagendas").click();
+		    $(".allbriefs").click();
+	}, 50); */
+	
+	// close out non-frequently used sections - note that this will mess up sticky headers
+	
+	//$(".b2badmintasks-img-swap").click();
+	//$(".opsadmintasks-img-swap").click();
+	//$(".opsadmintasks-img-swap").click();
+	//$(".pnbadmintasks-img-swap").click();
+	
+	$('#aspnetForm').keydown(function(e){
+    if (e.keyCode === 13) { // If Enter key pressed
+        $('#searchimage').click();
+    	}
+	});
+	
+	$("#searchimage").click(function() 	{
+		dynamicFilterData(selectedFilters);
+	});
+
+	var table = $("table.ms-listviewtable");
+	var input = $("input#filterInput");
+	input.keyup(function() // On key presses
+	{	
+		if (input.val().length == 0)
+		{
+			table.find('tr').each(function (row) {
+				$(this).show();
+			});	
+			dynamicFilterData(selectedFilters);
+		}	
+	});
+
+	input.bind("mouseup", function(e){
+	  var $input = $(this),
+	      oldValue = $input.val();
+	
+	  if (oldValue == "") return;
+	
+	  // When this event is fired after clicking on the clear button
+	  // the value is not cleared yet. We have to wait for it.
+	  setTimeout(function(){
+	    var newValue = $input.val();
+	
+	    if (newValue == ""){
+	      // Gotcha
+			table.find('tr').each(function (row) {
+				$(this).show();
+			});	
+			dynamicFilterData(selectedFilters);
+	    }
+	  }, 1);
+	});	
+
+});  // end of (document).ready
+
+
+function actionHeader()
+{
+	fnDecodeURI();
+	//fnChangeColumnHeading();
+	fnHighlightSpecialRows();
+	var tables = $("table.ms-listviewtable");
+	getColumnIndex(tables);	
+	
+	//if (!this.ctx.inGridMode) {
+	//	changeDays();
+	//}  
+}
+
+$(".meetingagendas-img-swap").click(function(){
+	if ($(this).attr("class") == "meetingagendas-img-swap on") 
+	{
+		this.src = this.src.replace("-on","-off");
+		$("div[id='meetingagendas']").css({"display":"none"});
+		$(this).parent().parent().parent().parent().parent().next("div").css({"display":"none"});
+	} else {
+		this.src = this.src.replace("-off","-on");
+		$("div[id='meetingagendas']").css({"display":"block"});
+		$(this).parent().parent().parent().parent().parent().next("div").css({"display":"block"});
+	}
+	$(this).toggleClass("on");
+});
+
+$(".admintasks-img-swap").click(function(){
+	if ($(this).attr("class") == "admintasks-img-swap on") 
+	{
+		this.src = this.src.replace("-on","-off");
+		$("div[id='admintasks']").css({"display":"none"});
+		$(this).parent().parent().parent().parent().parent().next("div").css({"display":"none"});
+	} else {
+		this.src = this.src.replace("-off","-on");
+		$("div[id='admintasks']").css({"display":"block"});
+		$(this).parent().parent().parent().parent().parent().next("div").css({"display":"block"});
+	}
+	$(this).toggleClass("on");
+});
+
+$(".opsadmintasks-img-swap").click(function(){
+	if ($(this).attr("class") == "opsadmintasks-img-swap on") 
+	{
+		this.src = this.src.replace("-on","-off");
+		$("div[id='opsadmintasks']").css({"display":"none"});
+		$(this).parent().parent().parent().parent().parent().next("div").css({"display":"none"});
+	} else {
+		this.src = this.src.replace("-off","-on");
+		$("div[id='opsadmintasks']").css({"display":"block"});
+		$(this).parent().parent().parent().parent().parent().next("div").css({"display":"block"});
+	}
+	$(this).toggleClass("on");
+});
+
+$(".b2badmintasks-img-swap").click(function(){
+	if ($(this).attr("class") == "b2badmintasks-img-swap on") 
+	{
+		this.src = this.src.replace("-on","-off");
+		$("div[id='b2badmintasks']").css({"display":"none"});
+		$(this).parent().parent().parent().parent().parent().next("div").css({"display":"none"});
+	} else {
+		this.src = this.src.replace("-off","-on");
+		$("div[id='b2badmintasks']").css({"display":"block"});
+		$(this).parent().parent().parent().parent().parent().next("div").css({"display":"block"});
+	}
+	$(this).toggleClass("on");
+});
+
+$(".pnbadmintasks-img-swap").click(function(){
+	if ($(this).attr("class") == "pnbadmintasks-img-swap on") 
+	{
+		this.src = this.src.replace("-on","-off");
+		$("div[id='pnbadmintasks']").css({"display":"none"});
+		$(this).parent().parent().parent().parent().parent().next("div").css({"display":"none"});
+	} else {
+		this.src = this.src.replace("-off","-on");
+		$("div[id='pnbadmintasks']").css({"display":"block"});
+		$(this).parent().parent().parent().parent().parent().next("div").css({"display":"block"});
+	}
+	$(this).toggleClass("on");
+});
+
+
+$(".allbriefs-img-swap").click(function(){
+	if ($(this).attr("class") == "allbriefs-img-swap on") 
+	{
+		this.src = this.src.replace("-on","-off");
+		$("div[id='allbriefs']").css({"display":"none"});
+		$(this).parent().parent().parent().parent().parent().next("div").css({"display":"none"});
+	} else {
+		this.src = this.src.replace("-off","-on");
+		$("div[id='allbriefs']").css({"display":"block"});
+		$(this).parent().parent().parent().parent().parent().next("div").css({"display":"block"});
+	}
+	$(this).toggleClass("on");
+});
+	
+$(".priorityreview-img-swap").click(function(){
+	if ($(this).attr("class") == "priorityreview-img-swap on") 
+	{
+		this.src = this.src.replace("-on","-off");
+		$("div[id='priorityreview']").css({"display":"none"});
+		$(this).parent().parent().parent().parent().parent().next("div").css({"display":"none"});
+	} else {
+		this.src = this.src.replace("-off","-on");
+		$("div[id='priorityreview']").css({"display":"block"});
+		$(this).parent().parent().parent().parent().parent().next("div").css({"display":"block"});
+	}
+	$(this).toggleClass("on");
+});
+
+
+$(".tbdbriefs-img-swap").click(function(){
+	if ($(this).attr("class") == "tbdbriefs-img-swap on") 
+	{
+		this.src = this.src.replace("-on","-off");
+		$("div[id='tbdbriefs']").css({"display":"none"});
+		$(this).parent().parent().parent().parent().parent().next("div").css({"display":"none"});
+	} else {
+		this.src = this.src.replace("-off","-on");
+		$("div[id='tbdbriefs']").css({"display":"block"});
+		$(this).parent().parent().parent().parent().parent().next("div").css({"display":"block"});
+	}
+	$(this).toggleClass("on");
+});
+
+$(".unassigned-img-swap").click(function(){
+	if ($(this).attr("class") == "unassigned-img-swap on") 
+	{
+		this.src = this.src.replace("-on","-off");
+		$("div[id='unassigned']").css({"display":"none"});
+		$(this).parent().parent().parent().parent().parent().next("div").css({"display":"none"});
+	} else {
+		this.src = this.src.replace("-off","-on");
+		$("div[id='unassigned']").css({"display":"block"});
+		$(this).parent().parent().parent().parent().parent().next("div").css({"display":"block"});
+	}
+	$(this).toggleClass("on");
+});
+
+$(".workinprogress-img-swap").click(function(){
+	if ($(this).attr("class") == "workinprogress-img-swap on") 
+	{
+		this.src = this.src.replace("-on","-off");
+		$("div[id='workinprogress']").css({"display":"none"});
+		$(this).parent().parent().parent().parent().parent().next("div").css({"display":"none"});
+	} else {
+		this.src = this.src.replace("-off","-on");
+		$("div[id='workinprogress']").css({"display":"block"});
+		$(this).parent().parent().parent().parent().parent().next("div").css({"display":"block"});
+	}
+	$(this).toggleClass("on");
+});	
+function fnDecodeURI(startDate, endDate) {
+    var table = $("table.ms-listviewtable tbody");
+
+    table.find('tr').each(function (i) {
+        var $tds = $(this).find('td');
+        if (typeof $tds.eq(projectname_col)[0] != 'undefined')
+        {
+		    var a = $tds.eq(projectname_col)[0].innerHTML;
+		    var b = EEDecodeSpecialChars(a);
+			$tds.eq(projectname_col)[0].innerHTML = b;        
+		}
+	});
+}
+	
+function fnHighlightSpecialRows()
+{
+		/*$('table.ms-listviewtable > tbody > tr').each(function (i) {
+	        $(this).find('th,td').each(function (colIndex, c) {
+             if (colIndex == 1)
+             	console.log(c.textContent);
+        	});
+        });*/
+		$('table.ms-listviewtable > tbody > tr').each(function (i) {	
+	 	var $tds = $(this).find('td'),
+	          managingChannel = $tds.eq(b2b_col).text();
+	          if (managingChannel == "B2B ONLY")
+	          {
+	          	$tds.css({"color":"Blue"});
+	          	$tds.find('div').each(function (k) {
+	          		$(this).css({"color":"Blue"});
+				});
+	          	$tds.find('a').each(function (k) {
+	          		$(this).css({"color":"Blue"});
+				});
+	          }
+	          else if (managingChannel == "Ops ONLY" || managingChannel == "BT OPS ONLY")
+	          {
+	          	$tds.css({"color":"Purple"});
+	          	$tds.find('div').each(function (k) {
+	          		$(this).css({"color":"Purple"});
+				});
+	          	$tds.find('a').each(function (k) {
+	          		$(this).css({"color":"Purple"});
+				});
+	          	
+	          }
+	          else if (managingChannel == "PNB ONLY" || managingChannel == "Media Co. / Telematics Only")
+	          {
+	          	$tds.css({"color":"Green"});
+	          	$tds.find('div').each(function (k) {
+	          		$(this).css({"color":"Green"});
+				});
+	          	$tds.find('a').each(function (k) {
+	          		$(this).css({"color":"Green"});
+				});
+	          }
+	          else if (managingChannel == "CRM ONLY")
+	          {
+	          	$tds.css({"color":"fuchsia"});
+	          	$tds.find('div').each(function (k) {
+	          		$(this).css({"color":"fuchsia"});
+				});
+	          	$tds.find('a').each(function (k) {
+	          		$(this).css({"color":"fuchsia"});
+				});
+	          }
+	});
+}
+function fnReformatPresenter()
+{
+
+	var tables = $("table.ms-listviewtable");
+	for (var i=0;i<tables.length;i++)
+	{
+		tables.eq(i).find('th').each(function (j) {   	
+			if ($.trim($(this).text()).toLowerCase() == "pmo lead(s)" || $.trim($(this).text()).toLowerCase() == "fwa pmo lead(s)"  || $.trim($(this).text()).toLowerCase() == "lead sr. mgr" || $.trim($(this).text()).toLowerCase() == "imc leads" || $.trim($(this).text()).toLowerCase() == "gtm lead" || $.trim($(this).text()).toLowerCase() == "crm lead" || $.trim($(this).text()).toLowerCase() == "do lead")
+			{
+				tables.eq(i).find('tr').each(function (k) {
+					if ($(this).find('td').length > 1)
+					{
+						var $tds = $(this).find('td');
+						$tds.eq(j)[0].innerText = (typeof $tds.eq(j)[0].outerText == 'undefined')? "":$tds.eq(j)[0].outerText;
+						return;
+					}
+				}); 
+			}
+			if (i==1)
+			{
+		    	tables.eq(i).find('tr').each(function (k) {
+		    		$(this).addClass('ms-itmHoverEnabled');
+					return;
+				});			
+			}
+			
+			if ($.trim($(this).text()).toLowerCase().indexOf("save as draft?") > -1)
+	    	{
+		    	tables.eq(i).find('tr').each(function (k) {
+		        	var $tds = $(this).find('td'),        
+		        	saveasdraft = $tds.eq(j).text();
+					if (saveasdraft == "Yes")
+					{
+						$(this).css({"background-color":"#efefef"});
+						$tds.eq(j).css({
+						"font-size": "12px",
+						"font-weight":"bold",
+						"font-family":"arial",
+						"vertical-align":"middle",
+						"color":"red"
+						});
+					}
+				}); 
+			}
+			if ($.trim($(this).text()).toLowerCase() == "other support teams expected to be later engaged")	
+	    	{
+			    var innerText = $(this)[0].innerHTML;
+			    $(this)[0].innerHTML= innerText.replace(/Other support teams expected to be later engaged/g, 'Future Support Team(s)');
+	    	}
+			if ($.trim($(this).text()).toLowerCase() == "pmo support level")	
+	    	{
+			    var innerText = $(this)[0].innerHTML;
+			    $(this)[0].innerHTML= innerText.replace(/PMO Support Level/g, 'S');
+	    	}
+			if ($.trim($(this).text()).toLowerCase() == "fwa pmo support level")	
+	    	{
+			    var innerText = $(this)[0].innerHTML;
+			    $(this)[0].innerHTML= innerText.replace(/FWA PMO Support Level/g, 'S');
+	    	}
+	    	
+			if ($.trim($(this).text()).toLowerCase() == "will this project require digital pmo support?")
+	    	{
+	    		var innerText = $(this)[0].innerHTML;
+			    $(this)[0].innerHTML= innerText.replace(/Will this project require Digital PMO support\?/g, 'Digital PMO');
+			    $(this).width("1%");
+			}
+	    	
+	    	
+		});
+	}
+	$("TH.ms-vh2:contains('Project Name')").css("cssText","min-width:200px;width:200px");
+	$("TH.ms-vh2:contains('Support Team')").css("cssText","min-width:200px;width:200px");
+}
+
+function fnRemoveMarketRows()
+{
+	/*
+	var marketArray = ['NE Market Activity','SE Market Activity','SC Market Activity','NC Market Activity','GL Market Activity','PC Market Activity']; 
+
+	$('table.ms-listviewtable > tbody > tr').each(function (i) {	
+ 	var $tds = $(this).find('td'),
+          launchtype = $tds.eq(launchtype_col).text();
+          if ($.inArray(launchtype, marketArray) != -1)
+          {
+          	$(this).remove();
+          }	
+      }); */
+     
+
+	//var listItems = $("table.ms-listviewtable tr:not(.ms-viewheadertr)");
+	//var listItems = $("table.ms-listviewtable > tbody > tr");
+	var table = $("table.ms-listviewtable tbody");
+	//listItems.each(function() // for each items in our list
+	//{
+	table.find('tr').each(function (row) {
+		var text = $(this).text().toLowerCase(); // get all the text values of that list item
+		if (text.indexOf('market activity') != -1) // does it match the text of our filter?
+		{ 
+			$(this).remove();
+		}
+	});      
+}
+
+function dynamicFilterData(selectedFilters)
+{
+	var table = $("table.ms-listviewtable tbody");
+	// remove all "marked" text
+ 	for (i=0; i < table.length; i++)
+	{
+		table[i].innerHTML = table[i].innerHTML.replace(/<\/?mark[^>]*>/g,"");
+	}
+    table.find('tr').each(function (row) {
+		$(this).show();  
+		if (matchTextBoxSearch($(this)))
+		{
+			//$(this).show();
+		}
+		else
+		{
+			$(this).hide();
+		}
+	});
+}
+
+function matchTextBoxSearch(row)
+{
+	//var list = $("table.ms-listviewtable");
+	// Table row of the items in my list.
+	//var listItems = $("table.ms-listviewtable tr:not(.ms-viewheadertr)");
+	// Our filter input.
+	var input = $("input#filterInput");
+	if (input.val().toLowerCase() != '' && input.val().toLowerCase() != 'search...')
+	{
+	    //listItems.each(function() // for each items in our list
+	    {
+			var text = row.text().toLowerCase(); // get all the text values of that list item
+			if (text.indexOf(input.val().toLowerCase()) != -1) // does it match the text of our filter?
+			{ 
+			    var regex = new RegExp(input.val().toLowerCase(), 'gi');
+		        var response = row[0].innerHTML.replace(regex, function(str) {
+		            return "<mark>" + str + "</mark>"
+		        })
+		        row[0].innerHTML = response;		    
+			    return true;
+			}
+			else
+			{
+			     return false; // nope! hide it!
+			}
+		}
+	}
+	else
+		return true;
+}
+
+function getColumnIndex(tables) {
+
+	tables.first().find('th').each(function (i) {
+    	if ($.trim($(this).text()).toLowerCase() == "saturday" || $.trim($(this).text()).toLowerCase() == "days shown on calendar")
+    	{
+    		saturday_col = i;  
+		    var innerText = $(this)[0].innerHTML;
+		    $(this)[0].innerHTML= innerText.replace(/Saturday/g, 'Days shown on calendar');
+		}
+    	else if ($.trim($(this).text()).toLowerCase() == "sunday" || $.trim($(this).text()).toLowerCase() == "days in tbd")
+    	{
+    		sunday_col = i;  
+		    var innerText = $(this)[0].innerHTML;
+		    $(this)[0].innerHTML= innerText.replace(/Sunday/g, 'Days in TBD');
+		}
+    	else if ($.trim($(this).text()).toLowerCase() == "launch date modified date")
+    	{
+    		launchdate_timestamp_col = i;  
+		}
+    	else if ($.trim($(this).text()).toLowerCase() == "priority assigned date")
+    	{
+    		priorityassigned_col = i;  
+		}
+		else if ($.trim($(this).text()).toLowerCase().indexOf("launch type") > -1)
+    	{
+    		if (launchtype_col == 0)
+	    		launchtype_col = i;
+    	}
+    	else if ($.trim($(this).text()).toLowerCase() == "do lead")
+    		dolead_col = i;
+    	else if ($.trim($(this).text()).toLowerCase() == "crm lead")
+    		crmlead_col = i;
+    	else if ($.trim($(this).text()).toLowerCase() == "gtm lead")
+    		gtmlead_col = i;
+    	else if ($.trim($(this).text()).toLowerCase() == "imc leads")
+    		imclead_col = i;
+    	else if ($.trim($(this).text()).toLowerCase() == "pmo lead(s)")
+    		pmolead_col = i;
+    	else if ($.trim($(this).text()).toLowerCase() == "fwa pmo lead(s)")
+    		fwapmolead_col = i;
+    	else if ($.trim($(this).text()).toLowerCase() == "lead sr. mgr")
+    		srmanagerlead_col = i;
+	});
+	
+	/*tables.eq(1).find('th').each(function (i) {
+    	if ($.trim($(this).text()).toLowerCase() == "launch date")
+    	{
+    		launchdate_col = i;  
+		}
+    	if ($.trim($(this).text()).toLowerCase() == "support team(s)")
+    	{
+    		supportteam_col = i;  
+		}
+		
+	});*/
+	
+}
+
+function changeDays() {
+
+	//if (currentURL.indexOf("GTM Admin View") > -1)  //launchtype_col > 0 && 
+	//	fnRemoveMarketRows();
+	if (currentURL.indexOf("GTM PMO Admin View") > -1)
+		return;
+    var tables = $("table.ms-listviewtable tbody");
+
+    /*tables.last().find('tr').each(function (i) {
+        var $tds = $(this).find('td'),
+          modifiedDate = new Date($tds.eq(launchdate_timestamp_col).text()),
+          priorityassignedDate = new Date($tds.eq(priorityassigned_col).text());
+        var diff = new Date(today - priorityassignedDate);
+        var days = diff/1000/60/60/24;
+        
+        if (saturday_col >=0 && $tds.eq(saturday_col).length > 0)
+        {
+        	if (!isNaN(days))
+				$tds.eq(saturday_col)[0].innerHTML = Number((days).toFixed(0));
+			else
+				$tds.eq(saturday_col)[0].innerHTML = "N/A";
+		}
+        diff = new Date(today - modifiedDate);
+        days = diff/1000/60/60/24;
+        if (sunday_col >=0  && $tds.eq(sunday_col).length > 0)
+        {
+			$tds.eq(sunday_col)[0].innerHTML = Number((days).toFixed(0));
+		}
+		if (days < 60)
+			$(this).remove();
+	});*/
+    /*$("table.ms-listviewtable:eq(1)").find('tr').each(function (i) {
+		var days = diff/1000/60/60/24;
+
+        var $tds = $(this).find('td'),
+          launchDate = $tds.eq(launchdate_col).text(),
+          supportTeam = $tds.eq(supportteam_col).text();
+        if (supportTeam.length > 0)
+		{
+			if (supportTeam.indexOf( "Go To Market") > -1) // leave PMO out of this equation || supportTeam.indexOf( "Market PMO Request") > -1)
+			{
+				var timestamp=Date.parse(launchDate);
+		  
+				if (isNaN(timestamp)==false)
+				{
+					launchDate = new Date(launchDate);
+			        var diff = new Date(today - launchDate);
+			        days = diff/1000/60/60/24;
+					if (days > 1)
+						$(this).remove();
+				}		
+			}
+			else
+				$(this).remove();
+		}
+	});	*/	
+}
